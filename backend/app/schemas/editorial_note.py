@@ -25,6 +25,7 @@ class EditorialNoteUpdate(BaseModel):
 class EditorialNoteRead(TimestampedRead):
     manuscript_id: str
     author_user_id: str
+    author_user_name: Optional[str] = None
     kind: EditorialNoteKind
     body: str
     pinned: bool

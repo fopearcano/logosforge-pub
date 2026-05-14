@@ -29,6 +29,7 @@ class ProductionItemUpdate(BaseModel):
 class ProductionItemRead(TimestampedRead):
     manuscript_id: str
     assignee_id: Optional[str]
+    assignee_name: Optional[str] = None
     stage: ProductionStage
     status: ProductionItemStatus
     due_date: Optional[date]

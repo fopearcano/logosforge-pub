@@ -21,3 +21,7 @@ class Review(BaseEntity, table=True):
 
     manuscript: "Manuscript" = Relationship(back_populates="reviews")
     reviewer: "User" = Relationship(back_populates="reviews")
+
+    @property
+    def reviewer_name(self) -> Optional[str]:
+        return self.reviewer.full_name if self.reviewer is not None else None

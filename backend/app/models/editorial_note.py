@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship
 
@@ -21,3 +21,7 @@ class EditorialNote(BaseEntity, table=True):
 
     manuscript: "Manuscript" = Relationship(back_populates="editorial_notes")
     author_user: "User" = Relationship(back_populates="editorial_notes")
+
+    @property
+    def author_user_name(self) -> Optional[str]:
+        return self.author_user.full_name if self.author_user is not None else None

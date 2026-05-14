@@ -54,6 +54,14 @@ export async function apiPostJson<T>(path: string, payload: unknown): Promise<T>
   });
 }
 
+export async function apiPatchJson<T>(path: string, payload: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function apiPostForm<T>(
   path: string,
   payload: Record<string, string>,

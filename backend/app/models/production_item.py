@@ -23,3 +23,7 @@ class ProductionItem(BaseEntity, table=True):
 
     manuscript: "Manuscript" = Relationship(back_populates="production_items")
     assignee: Optional["User"] = Relationship(back_populates="production_assignments")
+
+    @property
+    def assignee_name(self) -> Optional[str]:
+        return self.assignee.full_name if self.assignee is not None else None

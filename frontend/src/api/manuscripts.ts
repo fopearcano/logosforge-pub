@@ -1,5 +1,12 @@
-import { apiFetch, apiPostJson } from './client';
+import { apiFetch, apiPatchJson, apiPostJson } from './client';
 import type { Author, Manuscript, Page } from '@/types/manuscript';
+import type {
+  Contract,
+  EditorialNote,
+  EditorialNoteKind,
+  ProductionItem,
+  Review,
+} from '@/types/editorial';
 import type {
   TransitionResponse,
   TransitionsMap,
@@ -48,3 +55,39 @@ export const transitionManuscript = (
 
 export const fetchTransitionsMap = () =>
   apiFetch<TransitionsMap>('/workflow/transitions');
+
+export type ManuscriptPatch = Partial<{
+  title: string;
+  subtitle: string | null;
+  synopsis: string | null;
+  genre: string | null;
+  language: string;
+  word_count: number | null;
+}>;
+
+export const patchManuscript = (id: string, body: ManuscriptPatch) =>
+  apiPatchJson<Manuscript>(`/manuscripts/${id}`, body);
+
+export const fetchReviews = (manuscript_id: string) =>
+  apiFetch<Page<Review>>(`/reviews${toQuery({ manuscript_id, limit: 100 })}`);
+
+export const fetchContracts = (manuscript_id: string) =>
+  apiFetch<Page<Contract>>(`/contracts${toQuery({ manuscript_id, limit: 100 })}`);
+
+export const fetchProductionItems = (manuscript_id: string) =>
+  apiFetch<Page<ProductionItem>>(
+    `/production-items${toQuery({ manuscript_id, limit: 100 })}`,
+  );
+
+export const fetchEditorialNotes = (manuscript_id: string) =>
+  apiFetch<Page<EditorialNote>>(
+    `/editorial-notes${toQuery({ manuscript_id, limit: 100 })}`,
+  );
+
+export const createEditorialNote = (body: {
+  manuscript_id: string;
+  author_user_id: string;
+  kind: EditorialNoteKind;
+  body: string;
+  pinned?: boolean;
+}) => apiPostJson<EditorialNote>('/editorial-notes', body);

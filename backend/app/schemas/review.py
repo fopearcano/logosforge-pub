@@ -25,6 +25,7 @@ class ReviewUpdate(BaseModel):
 class ReviewRead(TimestampedRead):
     manuscript_id: str
     reviewer_id: str
+    reviewer_name: Optional[str] = None
     verdict: ReviewVerdict
     summary: str
     rating: Optional[int]

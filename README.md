@@ -7,8 +7,9 @@ under a single, refined surface.
 
 This repository contains the foundation, the editorial domain schema,
 a full CRUD HTTP API, JWT-based authentication with role-based access
-control, and an editorial workflow engine wired through to a dark-themed
-React UI with a timeline and transition controls.
+control, an editorial workflow engine, and a full manuscript detail
+page wired through to a dark-themed React UI with inline editing,
+timeline, reviews, contracts, production board, and editorial notes.
 
 ---
 
@@ -357,19 +358,81 @@ through the HTTP layer in `tests/test_workflow.py`.
 ### Frontend
 
 The dashboard lists every manuscript with a `StatusBadge`. Clicking a
-manuscript opens its detail view, which renders:
+manuscript opens its full detail page — see [Manuscript detail page](#manuscript-detail-page).
 
-- the manuscript header (title, author, word count, genre, language);
-- a vertical `WorkflowTimeline` of every transition, with actor and
-  optional comment;
-- a `TransitionControl` panel — a dropdown of currently allowed
-  next-states plus a comment field. The panel is disabled until the
-  user signs in, and POSTs the transition through the protected
-  endpoint above.
+---
 
-The transition control reads its options live from
-`/api/workflow/transitions`, so the UI cannot drift from the
-service's transition graph.
+## Manuscript detail page
+
+`ManuscriptView` is a two-column editorial detail page composed of
+small, single-purpose React components.
+
+### Layout
+
+```
+Header (title, subtitle, badge, author, word count, language)
+─────────────────────────────────────────────────────────────
+Synopsis (inline editable)
+
+┌──────────────────────────────┬───────────────────────────┐
+│ Workflow chronicle (timeline)│ Metadata (inline editable)│
+│                              │ Author                    │
+│ Editorial notes              │ Workflow control          │
+│  · pinned-first list         │ Contracts                 │
+│  · "Leave a note" form       │ Production                │
+│                              │ Manuscript files          │
+│ Reviews (read-only)          │  · placeholder            │
+└──────────────────────────────┴───────────────────────────┘
+```
+
+The two-column grid collapses to a single stacked column on small
+viewports.
+
+### Sections and data sources
+
+| Section                  | Endpoint                                  |
+| ------------------------ | ----------------------------------------- |
+| Header + Synopsis        | `GET /api/manuscripts/{id}`               |
+| Metadata + inline edits  | `PATCH /api/manuscripts/{id}`             |
+| Author                   | `GET /api/authors/{id}`                   |
+| Workflow timeline        | `GET /api/manuscripts/{id}/workflow-events` |
+| Transition control       | `POST /api/manuscripts/{id}/transition`   |
+| Reviews                  | `GET /api/reviews?manuscript_id=…`        |
+| Contracts                | `GET /api/contracts?manuscript_id=…`      |
+| Production               | `GET /api/production-items?manuscript_id=…` |
+| Editorial notes (list)   | `GET /api/editorial-notes?manuscript_id=…`|
+| Editorial notes (create) | `POST /api/editorial-notes`               |
+| Manuscript files         | UI placeholder — not yet implemented      |
+
+Reviews, editorial notes, production items, and workflow events all
+denormalise the related user's name (`reviewer_name`, `author_user_name`,
+`assignee_name`, `actor_name`) so the UI can render people-readable
+attribution without an additional user lookup.
+
+### Inline editing
+
+`EditableField` turns the title, subtitle, synopsis, genre, language,
+and word count into click-to-edit fields. Hovering shows a subtle
+dotted underline; clicking opens an input or textarea with explicit
+Save / Cancel controls. `Enter` saves single-line fields; `Esc`
+cancels in either mode. Server-side validation errors surface inline.
+
+The fields are disabled for anonymous visitors; signing in turns them
+live. Empty strings on optional fields (subtitle, synopsis, genre)
+clear the column.
+
+### Editorial notes panel
+
+Notes are sorted with pinned entries first, then newest. Each shows
+its kind, a "Pinned" indicator when applicable, the author's name,
+and timestamp. The "Leave a note" form below the list posts to
+`/api/editorial-notes`; it is disabled until the user signs in.
+
+### Attachments
+
+Files are not yet wired through. The sidebar shows a clearly-labelled
+placeholder section with disabled controls so the eventual shape of
+the feature is visible in the layout.
 
 ---
 
@@ -438,8 +501,8 @@ All list endpoints additionally accept `skip` and `limit`.
 
 ## Status
 
-Schema, CRUD, authentication, and the workflow engine are in place,
-with a dark editorial UI for manuscripts and transitions. Still to
-come: `User` management endpoints (CRUD, password rotation, invites)
-and the rest of the editorial views (authors, contracts, production
-board, archive).
+Schema, CRUD, authentication, the workflow engine, and a full
+manuscript detail page are in place. Still to come: `User` management
+endpoints (CRUD, password rotation, invites), the rest of the
+editorial views (authors index, contracts index, production board,
+archive), and actual file attachment plumbing.
