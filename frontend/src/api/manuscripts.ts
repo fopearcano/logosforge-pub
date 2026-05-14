@@ -82,6 +82,19 @@ export const fetchProductionItems = (manuscript_id: string) =>
     `/production-items${toQuery({ manuscript_id, limit: 100 })}`,
   );
 
+export const fetchProductionItem = (id: string) =>
+  apiFetch<ProductionItem>(`/production-items/${id}`);
+
+export type ProductionItemPatch = Partial<{
+  stage: ProductionItem['stage'];
+  status: ProductionItem['status'];
+  due_date: string | null;
+  notes: string | null;
+}>;
+
+export const patchProductionItem = (id: string, body: ProductionItemPatch) =>
+  apiPatchJson<ProductionItem>(`/production-items/${id}`, body);
+
 export const fetchEditorialNotes = (manuscript_id: string) =>
   apiFetch<Page<EditorialNote>>(
     `/editorial-notes${toQuery({ manuscript_id, limit: 100 })}`,

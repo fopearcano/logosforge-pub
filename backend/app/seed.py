@@ -24,9 +24,11 @@ from app.models import (
     Manuscript,
     ProductionItem,
     ProductionItemStatus,
+    ProductionRecord,
     ProductionStage,
     Review,
     ReviewVerdict,
+    StreamStatus,
     User,
     UserRole,
     WorkflowEvent,
@@ -439,6 +441,55 @@ def _seed_editorial_notes(
     session.commit()
 
 
+def _seed_production_records(
+    session: Session, manuscripts: dict[str, Manuscript]
+) -> None:
+    today = date.today()
+    records = [
+        # The Salt Atlases — already out in the world.
+        ProductionRecord(
+            manuscript_id=manuscripts["salt_atlases"].id,
+            isbn="978-3-16-148410-0",
+            release_date=today - timedelta(days=30),
+            print_status=StreamStatus.COMPLETE,
+            ebook_status=StreamStatus.COMPLETE,
+            audiobook_status=StreamStatus.NOT_PLANNED,
+            cover_status=StreamStatus.COMPLETE,
+            layout_status=StreamStatus.COMPLETE,
+            prepress_status=StreamStatus.COMPLETE,
+            notes="Boxed up · stock in the warehouse · awaiting reviews.",
+        ),
+        # Letters to a Dim Province — actively in production.
+        ProductionRecord(
+            manuscript_id=manuscripts["letters_dim"].id,
+            isbn="978-3-16-148411-7",
+            release_date=today + timedelta(days=120),
+            print_status=StreamStatus.PENDING,
+            ebook_status=StreamStatus.PENDING,
+            audiobook_status=StreamStatus.NOT_PLANNED,
+            cover_status=StreamStatus.IN_PROGRESS,
+            layout_status=StreamStatus.IN_PROGRESS,
+            prepress_status=StreamStatus.NOT_PLANNED,
+            notes="Hardcover only for first edition; ebook to follow at +30 days.",
+        ),
+        # Algebra of Birds — schedule penciled, work not yet begun.
+        ProductionRecord(
+            manuscript_id=manuscripts["algebra_birds"].id,
+            isbn=None,
+            release_date=today + timedelta(days=300),
+            print_status=StreamStatus.PENDING,
+            ebook_status=StreamStatus.PENDING,
+            audiobook_status=StreamStatus.PENDING,
+            cover_status=StreamStatus.NOT_PLANNED,
+            layout_status=StreamStatus.NOT_PLANNED,
+            prepress_status=StreamStatus.NOT_PLANNED,
+            notes="Discussions underway for plate insert; budget pending.",
+        ),
+    ]
+    session.add_all(records)
+    session.commit()
+
+
 def run() -> None:
     init_db()
     with Session(engine) as session:
@@ -454,12 +505,14 @@ def run() -> None:
         _seed_contracts(session, manuscripts, authors)
         _seed_production_items(session, manuscripts, users)
         _seed_editorial_notes(session, manuscripts, users)
+        _seed_production_records(session, manuscripts)
 
     print(
         "Seeded LOGOSFORGE: "
         f"{len(users)} users (password '{DEMO_PASSWORD}' for all), "
         f"{len(authors)} authors, {len(manuscripts)} manuscripts, "
-        "with reviews, workflow events, contracts, production items and notes."
+        "with reviews, workflow events, contracts, production items, "
+        "production records, and notes."
     )
 
 

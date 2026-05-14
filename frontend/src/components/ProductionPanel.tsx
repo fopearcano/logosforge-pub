@@ -8,6 +8,7 @@ import {
 
 interface ProductionPanelProps {
   items: ProductionItem[];
+  onOpenItem?: (id: string) => void;
 }
 
 const STATUS_TONE: Record<ProductionItemStatus, string> = {
@@ -26,7 +27,7 @@ function formatDueDate(iso: string | null): string {
   });
 }
 
-export function ProductionPanel({ items }: ProductionPanelProps) {
+export function ProductionPanel({ items, onOpenItem }: ProductionPanelProps) {
   const sorted = [...items].sort((a, b) => {
     const order = { pending: 0, in_progress: 0, blocked: 1, done: 2 };
     return order[a.status] - order[b.status];
@@ -49,9 +50,19 @@ export function ProductionPanel({ items }: ProductionPanelProps) {
               className="border-t border-rule pt-3 first:border-t-0 first:pt-0"
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="font-serif text-[0.95rem] text-parchment">
-                  {PRODUCTION_STAGE_LABEL[item.stage]}
-                </span>
+                {onOpenItem ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenItem(item.id)}
+                    className="font-serif text-[0.95rem] text-parchment transition-colors hover:text-accent"
+                  >
+                    {PRODUCTION_STAGE_LABEL[item.stage]}
+                  </button>
+                ) : (
+                  <span className="font-serif text-[0.95rem] text-parchment">
+                    {PRODUCTION_STAGE_LABEL[item.stage]}
+                  </span>
+                )}
                 <span
                   className={`inline-flex items-center border ${STATUS_TONE[item.status]} px-2 py-0.5 font-mono text-[0.6rem] uppercase tracking-widest`}
                 >

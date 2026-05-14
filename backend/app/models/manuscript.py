@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.contract import Contract
     from app.models.editorial_note import EditorialNote
     from app.models.production_item import ProductionItem
+    from app.models.production_record import ProductionRecord
     from app.models.review import Review
     from app.models.workflow_event import WorkflowEvent
 
@@ -33,3 +34,7 @@ class Manuscript(BaseEntity, table=True):
     contracts: list["Contract"] = Relationship(back_populates="manuscript")
     production_items: list["ProductionItem"] = Relationship(back_populates="manuscript")
     editorial_notes: list["EditorialNote"] = Relationship(back_populates="manuscript")
+    production_record: Optional["ProductionRecord"] = Relationship(
+        back_populates="manuscript",
+        sa_relationship_kwargs={"uselist": False},
+    )

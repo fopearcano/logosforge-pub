@@ -8,9 +8,11 @@ under a single, refined surface.
 This repository contains the foundation, the editorial domain schema,
 a full CRUD HTTP API, JWT-based authentication with role-based access
 control, an editorial workflow engine, a full manuscript detail page,
-an expanded dashboard, a cross-entity search engine with filters, and
-a dedicated read-only archive view — all wired through to a
-dark-themed React UI with inline editing.
+an expanded dashboard, a cross-entity search engine with filters, a
+dedicated read-only archive view, and a production management module
+(per-title production records, a board, a release calendar, and
+production item detail pages) — all wired through to a dark-themed
+React UI with inline editing.
 
 ---
 
@@ -595,6 +597,94 @@ can route uniformly.
 
 ---
 
+## Production module
+
+The production module sits on top of two backend concerns:
+
+| Concern               | Where it lives                                            |
+| --------------------- | --------------------------------------------------------- |
+| Per-title roll-up     | `ProductionRecord` (1:1 with `Manuscript`)                |
+| Granular work items   | `ProductionItem` (already in the schema)                  |
+
+### ProductionRecord
+
+```
+id, manuscript_id (unique),
+isbn, release_date,
+print_status, ebook_status, audiobook_status,   (formats)
+cover_status, layout_status, prepress_status,    (stages)
+notes,
+created_at, updated_at
+```
+
+Every stream — format or stage — uses the new `StreamStatus` enum:
+`not_planned`, `pending`, `in_progress`, `blocked`, `complete`. Streams
+default to `not_planned` so a fresh record reflects a title that hasn't
+started production work in any direction.
+
+### Endpoints
+
+```
+GET    /api/production-records                      list (paginated)
+       ?manuscript_id=<id>
+       ?has_release_date=true|false
+       ?release_from=YYYY-MM-DD&release_to=YYYY-MM-DD
+GET    /api/production-records/{id}                 fetch one
+GET    /api/production-records/by-manuscript/{mid}  fetch by manuscript (404 if none)
+POST   /api/production-records                      create (auth required)
+PATCH  /api/production-records/{id}                 partial update (auth required)
+DELETE /api/production-records/{id}                 remove (admin only)
+```
+
+The list endpoint enriches each row with `manuscript_title`,
+`manuscript_status`, and `author_name`. Results are ordered by
+release date soonest first, with unscheduled records at the end.
+Creation refuses a second record per manuscript (409 — the FK is
+unique).
+
+### Frontend surface
+
+`AppShell` now exposes **Production** and **Calendar** as live nav
+targets alongside Manuscripts, Search, and Archive.
+
+| Page                  | What it does                                                       |
+| --------------------- | ------------------------------------------------------------------ |
+| `ProductionBoard`     | One row per production record. Title, author, manuscript status, ISBN, release, and two compact strips of `StreamStatusBadge`s — Formats and Stages. Sorted soonest-release first. |
+| `ReleaseCalendar`     | Records with release dates grouped by month, with weekday + day per entry, format strip on the right. |
+| `ProductionItemView`  | A single `ProductionItem`. Status (select) and due date / notes (`EditableField`) edit inline; the right sidebar shows assignment, stage, and a link back to the manuscript. The main column embeds `ProductionTimeline` highlighting the current item among its siblings. |
+
+`StreamStatusBadge` reuses the editorial tone vocabulary (cold for
+not-planned, warm for pending, live for in-progress, accent for
+complete, red for blocked) so it sits naturally next to the existing
+`StatusBadge`.
+
+### Manuscript detail integration
+
+`ManuscriptView` now embeds two production widgets in its sidebar:
+
+- `ProductionRecordPanel` — ISBN and release date are inline-editable;
+  each of the six streams (3 formats + 3 stages) has a tap-to-change
+  dropdown. If no record exists yet, the panel shows a single "Open
+  production record" button (sign-in gated, archive-respecting).
+- `ProductionPanel` — the existing list of `ProductionItem`s, now with
+  each stage row clickable. Clicking opens the `ProductionItemView`.
+
+Both panels honour the archive read-only mode: when the manuscript is
+in the `archived` status, edits and the "Open production record"
+action are disabled in the same way the rest of the page is.
+
+### Deadline tracking
+
+The dashboard's existing **Deadlines** widget already reads from
+`/api/dashboard/deadlines` (open `ProductionItem`s sorted by due
+date). The new `ProductionItemView` surfaces the same "in N days" /
+"N days overdue" label prominently in its section header, and
+`ProductionTimeline` annotates every non-done item with the same
+phrasing so a production manager has a consistent register across
+the dashboard, the manuscript view, and the item detail page.
+
+---
+
 ## API surface
 
 All endpoints live under `/api`, are documented at `/docs`, and return
@@ -662,7 +752,8 @@ All list endpoints additionally accept `skip` and `limit`.
 
 Schema, CRUD, authentication, the workflow engine, a full manuscript
 detail page, an expanded dashboard, cross-entity search with filters,
-and a dedicated read-only archive view are all in place. Still to
+a read-only archive view, and the production management module
+(records, board, calendar, item detail) are all in place. Still to
 come: `User` management endpoints (CRUD, password rotation, invites),
-the remaining editorial views (authors index, contracts index,
-production board), and actual file attachment plumbing.
+the remaining editorial views (authors index, contracts index), and
+actual file attachment plumbing.

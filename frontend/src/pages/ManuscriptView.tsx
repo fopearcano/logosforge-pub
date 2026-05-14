@@ -8,10 +8,12 @@ import { MetadataPanel } from '@/components/MetadataPanel';
 import { AuthorPanel } from '@/components/AuthorPanel';
 import { ContractsPanel } from '@/components/ContractsPanel';
 import { ProductionPanel } from '@/components/ProductionPanel';
+import { ProductionRecordPanel } from '@/components/ProductionRecordPanel';
 import { ReviewsList } from '@/components/ReviewsList';
 import { EditorialNotesPanel } from '@/components/EditorialNotesPanel';
 import { AttachmentsPlaceholder } from '@/components/AttachmentsPlaceholder';
 import { useAuth } from '@/auth/AuthContext';
+import { ApiError } from '@/api/client';
 import {
   fetchAuthor,
   fetchContracts,
@@ -24,6 +26,7 @@ import {
   patchManuscript,
   type ManuscriptPatch,
 } from '@/api/manuscripts';
+import { fetchProductionRecordByManuscript } from '@/api/productionRecords';
 import type { Author, Manuscript } from '@/types/manuscript';
 import type {
   Contract,
@@ -31,6 +34,7 @@ import type {
   ProductionItem,
   Review,
 } from '@/types/editorial';
+import type { ProductionRecord } from '@/types/production';
 import type {
   TransitionResponse,
   TransitionsMap,
@@ -40,9 +44,14 @@ import type {
 interface ManuscriptViewProps {
   manuscriptId: string;
   onBack: () => void;
+  onOpenProductionItem?: (id: string) => void;
 }
 
-export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
+export function ManuscriptView({
+  manuscriptId,
+  onBack,
+  onOpenProductionItem,
+}: ManuscriptViewProps) {
   const { status: authStatus } = useAuth();
   const authedAndEditable = authStatus === 'authenticated';
 
@@ -53,6 +62,8 @@ export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [productionItems, setProductionItems] = useState<ProductionItem[]>([]);
   const [editorialNotes, setEditorialNotes] = useState<EditorialNote[]>([]);
+  const [productionRecord, setProductionRecord] =
+    useState<ProductionRecord | null>(null);
   const [transitions, setTransitions] = useState<TransitionsMap | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,6 +95,15 @@ export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
       setProductionItems(productionPage.items);
       setEditorialNotes(notesPage.items);
 
+      // Production record is 1:1 with the manuscript; a 404 means none
+      // has been opened yet, which is a normal state.
+      const record = await fetchProductionRecordByManuscript(manuscriptId)
+        .catch((err: unknown) => {
+          if (err instanceof ApiError && err.status === 404) return null;
+          throw err;
+        });
+      setProductionRecord(record);
+
       const a = await fetchAuthor(m.author_id).catch(() => null);
       setAuthor(a);
     } catch (e) {
@@ -99,6 +119,7 @@ export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
     setContracts([]);
     setProductionItems([]);
     setEditorialNotes([]);
+    setProductionRecord(null);
     void load();
   }, [load]);
 
@@ -259,8 +280,17 @@ export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
             allowedNext={allowedNext}
             onTransition={handleTransition}
           />
+          <ProductionRecordPanel
+            manuscriptId={manuscript.id}
+            record={productionRecord}
+            canEdit={canEdit}
+            onChange={setProductionRecord}
+          />
           <ContractsPanel contracts={contracts} />
-          <ProductionPanel items={productionItems} />
+          <ProductionPanel
+            items={productionItems}
+            onOpenItem={onOpenProductionItem}
+          />
           <AttachmentsPlaceholder />
         </aside>
       </div>

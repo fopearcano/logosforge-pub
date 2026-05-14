@@ -60,3 +60,13 @@ class EditorialNoteKind(str, Enum):
     LINE = "line"
     DESIGN = "design"
     PRODUCTION = "production"
+
+
+class StreamStatus(str, Enum):
+    """Status of a single production stream (format or stage)."""
+
+    NOT_PLANNED = "not_planned"
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    BLOCKED = "blocked"
+    COMPLETE = "complete"

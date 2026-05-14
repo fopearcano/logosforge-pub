@@ -2,7 +2,14 @@ import type { ReactNode } from 'react';
 import { Eyebrow } from '@/components/Eyebrow';
 import { LoginPanel } from '@/components/LoginPanel';
 
-export type AppView = 'dashboard' | 'manuscript' | 'search' | 'archive';
+export type AppView =
+  | 'dashboard'
+  | 'manuscript'
+  | 'search'
+  | 'archive'
+  | 'production'
+  | 'calendar'
+  | 'production-item';
 
 interface AppShellProps {
   children: ReactNode;
@@ -59,6 +66,19 @@ export function AppShell({ children, onNavigate, activeView }: AppShellProps) {
                 onClick={() => onNavigate('dashboard')}
               />
               <NavLink
+                label="Production"
+                active={
+                  activeView === 'production' ||
+                  activeView === 'production-item'
+                }
+                onClick={() => onNavigate('production')}
+              />
+              <NavLink
+                label="Calendar"
+                active={activeView === 'calendar'}
+                onClick={() => onNavigate('calendar')}
+              />
+              <NavLink
                 label="Search"
                 active={activeView === 'search'}
                 onClick={() => onNavigate('search')}
@@ -69,7 +89,6 @@ export function AppShell({ children, onNavigate, activeView }: AppShellProps) {
                 onClick={() => onNavigate('archive')}
               />
               <span className="text-parchment-dim/60">Authors</span>
-              <span className="text-parchment-dim/60">Production</span>
             </nav>
 
             <LoginPanel />

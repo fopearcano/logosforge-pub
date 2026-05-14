@@ -14,6 +14,12 @@ from app.schemas.production_item import (
     ProductionItemRead,
     ProductionItemUpdate,
 )
+from app.schemas.production_record import (
+    ProductionRecordCreate,
+    ProductionRecordDetail,
+    ProductionRecordRead,
+    ProductionRecordUpdate,
+)
 from app.schemas.review import ReviewCreate, ReviewRead, ReviewUpdate
 from app.schemas.workflow_event import (
     TransitionRequest,
@@ -41,6 +47,10 @@ __all__ = [
     "ProductionItemCreate",
     "ProductionItemRead",
     "ProductionItemUpdate",
+    "ProductionRecordCreate",
+    "ProductionRecordDetail",
+    "ProductionRecordRead",
+    "ProductionRecordUpdate",
     "ReviewCreate",
     "ReviewRead",
     "ReviewUpdate",

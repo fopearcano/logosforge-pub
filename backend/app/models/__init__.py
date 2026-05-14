@@ -13,11 +13,13 @@ from app.models.enums import (
     ProductionItemStatus,
     ProductionStage,
     ReviewVerdict,
+    StreamStatus,
     UserRole,
     WorkflowStatus,
 )
 from app.models.manuscript import Manuscript
 from app.models.production_item import ProductionItem
+from app.models.production_record import ProductionRecord
 from app.models.review import Review
 from app.models.user import User
 from app.models.workflow_event import WorkflowEvent
@@ -31,9 +33,11 @@ __all__ = [
     "Manuscript",
     "ProductionItem",
     "ProductionItemStatus",
+    "ProductionRecord",
     "ProductionStage",
     "Review",
     "ReviewVerdict",
+    "StreamStatus",
     "User",
     "UserRole",
     "WorkflowEvent",
