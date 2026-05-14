@@ -5,9 +5,9 @@ LOGOSFORGE is intended as a quiet, archival workspace for the daily
 ledger of a press — manuscripts, authors, contracts, and production —
 under a single, refined surface.
 
-This repository contains the foundation and the editorial domain
-schema. HTTP endpoints and UI for the domain will follow in successive
-editions.
+This repository contains the foundation, the editorial domain schema,
+and a full CRUD HTTP API. UI for the domain entities will follow in
+successive editions.
 
 ---
 
@@ -92,6 +92,7 @@ The API is then reachable at:
 - `http://127.0.0.1:8000/`            — service identity
 - `http://127.0.0.1:8000/api/health`  — liveness probe
 - `http://127.0.0.1:8000/api/meta`    — application metadata
+- `http://127.0.0.1:8000/api/...`     — editorial CRUD (see [API surface](#api-surface))
 - `http://127.0.0.1:8000/docs`        — interactive OpenAPI documentation
 
 ### Switching to PostgreSQL
@@ -194,7 +195,69 @@ PostgreSQL forward-compatibility.
 
 ---
 
+## API surface
+
+All endpoints live under `/api`, are documented at `/docs`, and return
+JSON. Every list endpoint returns a paginated envelope:
+
+```json
+{
+  "items": [ /* ... */ ],
+  "total": 42,
+  "skip": 0,
+  "limit": 50
+}
+```
+
+`skip` defaults to `0`, `limit` defaults to `50` (max `200`).
+
+### Resources
+
+| Resource         | Path                       |
+| ---------------- | -------------------------- |
+| Authors          | `/api/authors`             |
+| Manuscripts      | `/api/manuscripts`         |
+| Reviews          | `/api/reviews`             |
+| Workflow events  | `/api/workflow-events`     |
+| Contracts        | `/api/contracts`           |
+| Production items | `/api/production-items`    |
+| Editorial notes  | `/api/editorial-notes`     |
+
+Each resource exposes the same five verbs:
+
+| Method   | Path             | Description                  | Status |
+| -------- | ---------------- | ---------------------------- | ------ |
+| `GET`    | `/{resource}`    | List (paginated, filterable) | 200    |
+| `GET`    | `/{resource}/{id}` | Read one                   | 200 / 404 |
+| `POST`   | `/{resource}`    | Create                       | 201 / 404 / 422 |
+| `PATCH`  | `/{resource}/{id}` | Partial update             | 200 / 404 / 422 |
+| `DELETE` | `/{resource}/{id}` | Remove                     | 204 / 404 |
+
+### Filters
+
+| Endpoint                  | Query parameters                                              |
+| ------------------------- | ------------------------------------------------------------- |
+| `/api/manuscripts`        | `status`, `genre`, `author_id`                                |
+| `/api/reviews`            | `manuscript_id`, `reviewer_id`                                |
+| `/api/workflow-events`    | `manuscript_id`                                               |
+| `/api/contracts`          | `manuscript_id`, `author_id`, `status`                        |
+| `/api/production-items`   | `manuscript_id`, `assignee_id`, `stage`, `status`             |
+| `/api/editorial-notes`    | `manuscript_id`, `author_user_id`, `kind`, `pinned`           |
+
+All list endpoints additionally accept `skip` and `limit`.
+
+### Error model
+
+| Status | Meaning                                                       |
+| ------ | ------------------------------------------------------------- |
+| `404`  | Entity not found, including missing FK references on `POST`.  |
+| `409`  | Database constraint violation (uniqueness, FK race).          |
+| `422`  | Request payload failed validation.                            |
+
+---
+
 ## Status
 
-Schema complete. HTTP endpoints currently expose `health` and `meta`;
-routers for the editorial entities will be added in the next edition.
+Schema complete, CRUD complete. Routes for `User` management and
+authentication, plus the UI for the editorial entities, will be added
+in subsequent editions.

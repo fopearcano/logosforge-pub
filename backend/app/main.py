@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 from app.config import settings
 from app.db import init_db
-from app.routers import health, meta
+from app.routers import ALL_ROUTERS
 
 
 @asynccontextmanager
@@ -32,8 +34,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.include_router(health.router, prefix=settings.api_prefix)
-    app.include_router(meta.router, prefix=settings.api_prefix)
+    for router_module in ALL_ROUTERS:
+        app.include_router(router_module.router, prefix=settings.api_prefix)
+
+    @app.exception_handler(IntegrityError)
+    async def _integrity_error_handler(_: Request, exc: IntegrityError) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Database constraint violation."},
+        )
 
     @app.get("/", tags=["root"], summary="Service identity")
     def root() -> dict[str, str]:
