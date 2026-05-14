@@ -1,49 +1,37 @@
 import { useEffect, useState } from 'react';
 import { Eyebrow } from '@/components/Eyebrow';
 import { StatusDot } from '@/components/StatusDot';
+import { ManuscriptListItem } from '@/components/ManuscriptListItem';
 import { fetchHealth, fetchMeta } from '@/api/meta';
+import { fetchManuscripts } from '@/api/manuscripts';
 import type { AppMeta } from '@/types/meta';
+import type { Manuscript } from '@/types/manuscript';
 
 type ServiceState = 'pending' | 'ok' | 'error';
 
-const SECTIONS = [
-  {
-    eyebrow: 'Folio I',
-    title: 'Catalogue',
-    body: 'Forthcoming titles, imprints, and editions in preparation.',
-  },
-  {
-    eyebrow: 'Folio II',
-    title: 'Manuscripts',
-    body: 'Submissions under review, revision rounds, and editorial notes.',
-  },
-  {
-    eyebrow: 'Folio III',
-    title: 'Authors',
-    body: 'Contracts, correspondence, and dossiers across the roster.',
-  },
-  {
-    eyebrow: 'Folio IV',
-    title: 'Production',
-    body: 'Typesetting, proofs, printing schedules, and binding.',
-  },
-];
+interface DashboardProps {
+  onOpenManuscript: (id: string) => void;
+}
 
-export function Dashboard() {
+export function Dashboard({ onOpenManuscript }: DashboardProps) {
   const [meta, setMeta] = useState<AppMeta | null>(null);
   const [service, setService] = useState<ServiceState>('pending');
+  const [manuscripts, setManuscripts] = useState<Manuscript[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchMeta(), fetchHealth()])
-      .then(([m]) => {
+    Promise.all([fetchMeta(), fetchHealth(), fetchManuscripts({ limit: 50 })])
+      .then(([m, , page]) => {
         if (cancelled) return;
         setMeta(m);
         setService('ok');
+        setManuscripts(page.items);
       })
-      .catch(() => {
+      .catch((e) => {
         if (cancelled) return;
         setService('error');
+        setError(e instanceof Error ? e.message : 'Failed to load manuscripts.');
       });
     return () => {
       cancelled = true;
@@ -64,9 +52,7 @@ export function Dashboard() {
           <p className="mt-6 max-w-prose text-parchment-muted">
             LOGOSFORGE assembles the daily ledger of an editorial house —
             manuscripts, authors, contracts, and the slow choreography of
-            production — under a single, local, archival surface. This is the
-            opening folio; the apparatus of the press will be drawn in over
-            successive editions.
+            production — under a single, local, archival surface.
           </p>
         </div>
 
@@ -91,8 +77,8 @@ export function Dashboard() {
               <dd>{meta?.environment ?? '—'}</dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-parchment-dim">Storage</dt>
-              <dd>SQLite</dd>
+              <dt className="text-parchment-dim">Manuscripts</dt>
+              <dd>{manuscripts?.length ?? '—'}</dd>
             </div>
           </dl>
         </aside>
@@ -101,22 +87,35 @@ export function Dashboard() {
       <div className="editorial-rule" />
 
       <section>
-        <Eyebrow>Folios in preparation</Eyebrow>
-        <div className="mt-8 grid grid-cols-1 gap-px overflow-hidden border border-rule bg-rule sm:grid-cols-2">
-          {SECTIONS.map((item) => (
-            <article
-              key={item.title}
-              className="flex flex-col justify-between bg-ink-800 p-8 transition-colors hover:bg-ink-700"
-            >
-              <div>
-                <Eyebrow>{item.eyebrow}</Eyebrow>
-                <h3 className="mt-3 font-serif text-2xl text-parchment">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-parchment-muted">{item.body}</p>
-              </div>
-              <span className="mt-8 font-mono text-[0.65rem] uppercase tracking-widest text-parchment-dim">
-                In preparation
-              </span>
-            </article>
+        <div className="flex items-baseline justify-between">
+          <Eyebrow>Manuscripts in the house</Eyebrow>
+          <span className="font-mono text-[0.65rem] uppercase tracking-widest text-parchment-dim">
+            Most recent first
+          </span>
+        </div>
+
+        <div className="mt-6 border-t border-rule">
+          {manuscripts === null && !error && (
+            <p className="py-10 font-mono text-[0.7rem] uppercase tracking-widest text-parchment-dim">
+              Loading…
+            </p>
+          )}
+          {error && (
+            <p className="py-10 font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
+              {error}
+            </p>
+          )}
+          {manuscripts !== null && manuscripts.length === 0 && (
+            <p className="py-10 font-mono text-[0.7rem] uppercase tracking-widest text-parchment-dim">
+              No manuscripts on the desk.
+            </p>
+          )}
+          {manuscripts?.map((m) => (
+            <ManuscriptListItem
+              key={m.id}
+              manuscript={m}
+              onOpen={onOpenManuscript}
+            />
           ))}
         </div>
       </section>

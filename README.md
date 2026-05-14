@@ -6,9 +6,9 @@ ledger of a press — manuscripts, authors, contracts, and production —
 under a single, refined surface.
 
 This repository contains the foundation, the editorial domain schema,
-a full CRUD HTTP API, and JWT-based authentication with role-based
-access control. UI for the domain entities will follow in successive
-editions.
+a full CRUD HTTP API, JWT-based authentication with role-based access
+control, and an editorial workflow engine wired through to a dark-themed
+React UI with a timeline and transition controls.
 
 ---
 
@@ -190,6 +190,9 @@ All statuses are exposed as the `WorkflowStatus` enum and stored
 as strings in the database for human-readable inspection and
 PostgreSQL forward-compatibility.
 
+See [Workflow engine](#workflow-engine) for the transition graph,
+endpoints, and UI.
+
 ### Other enums
 
 `UserRole`, `ReviewVerdict`, `ContractStatus`, `ProductionStage`,
@@ -293,6 +296,83 @@ refresh tokens, no rate limiting, no password rotation, no audit log.
 
 ---
 
+## Workflow engine
+
+A small state machine governs every manuscript's status. The transition
+graph is the single source of truth in
+`app.services.workflow.TRANSITIONS`; routers, tests, and the frontend
+consume it.
+
+### Transition graph
+
+```
+submitted          → under_review, rejected, archived
+under_review       → accepted, rejected, submitted, archived
+accepted           → development_editing, archived
+rejected           → archived
+development_editing → copy_editing, under_review, archived
+copy_editing       → proofreading, development_editing, archived
+proofreading       → layout, copy_editing, archived
+layout             → cover_design, proofreading, archived
+cover_design       → prepress, layout, archived
+prepress           → published, cover_design, archived
+published          → archived
+archived           → (terminal)
+```
+
+Every non-terminal status can also be shelved directly to `archived`.
+Backward edges allow returning a manuscript to the previous stage when
+revisions are needed.
+
+### Endpoints
+
+| Method | Path                                                | Purpose                                |
+| ------ | --------------------------------------------------- | -------------------------------------- |
+| `GET`  | `/api/workflow/transitions`                         | The full transition graph.             |
+| `GET`  | `/api/manuscripts/{id}/workflow-events`             | Chronological history for a manuscript.|
+| `POST` | `/api/manuscripts/{id}/transition`                  | Execute a transition (authenticated).  |
+
+`POST /api/manuscripts/{id}/transition` body:
+
+```json
+{ "to_status": "under_review", "comment": "Routing to reader." }
+```
+
+On success it records a `WorkflowEvent` with the previous status, new
+status, timestamp, acting user, and comment, then returns:
+
+```json
+{
+  "manuscript_id": "…",
+  "status": "under_review",
+  "event": { /* full WorkflowEvent including actor_name */ },
+  "allowed_next": ["accepted", "archived", "rejected", "submitted"]
+}
+```
+
+Disallowed transitions and self-transitions return `409` with a
+descriptive `detail`. The service is exercised both directly and
+through the HTTP layer in `tests/test_workflow.py`.
+
+### Frontend
+
+The dashboard lists every manuscript with a `StatusBadge`. Clicking a
+manuscript opens its detail view, which renders:
+
+- the manuscript header (title, author, word count, genre, language);
+- a vertical `WorkflowTimeline` of every transition, with actor and
+  optional comment;
+- a `TransitionControl` panel — a dropdown of currently allowed
+  next-states plus a comment field. The panel is disabled until the
+  user signs in, and POSTs the transition through the protected
+  endpoint above.
+
+The transition control reads its options live from
+`/api/workflow/transitions`, so the UI cannot drift from the
+service's transition graph.
+
+---
+
 ## API surface
 
 All endpoints live under `/api`, are documented at `/docs`, and return
@@ -358,7 +438,8 @@ All list endpoints additionally accept `skip` and `limit`.
 
 ## Status
 
-Schema complete, CRUD complete, authentication and RBAC scaffolding in
-place. `User` management endpoints (CRUD, password rotation, invites)
-and the UI for the editorial entities will follow in subsequent
-editions.
+Schema, CRUD, authentication, and the workflow engine are in place,
+with a dark editorial UI for manuscripts and transitions. Still to
+come: `User` management endpoints (CRUD, password rotation, invites)
+and the rest of the editorial views (authors, contracts, production
+board, archive).

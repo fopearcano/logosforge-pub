@@ -21,3 +21,7 @@ class WorkflowEvent(BaseEntity, table=True):
 
     manuscript: "Manuscript" = Relationship(back_populates="workflow_events")
     actor: Optional["User"] = Relationship(back_populates="workflow_events")
+
+    @property
+    def actor_name(self) -> Optional[str]:
+        return self.actor.full_name if self.actor is not None else None

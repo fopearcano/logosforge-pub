@@ -10,6 +10,7 @@ from app.routers import (
     meta,
     production_items,
     reviews,
+    workflow,
     workflow_events,
 )
 
@@ -20,6 +21,7 @@ ALL_ROUTERS = (
     authors,
     manuscripts,
     reviews,
+    workflow,
     workflow_events,
     contracts,
     production_items,
@@ -37,5 +39,6 @@ __all__ = [
     "meta",
     "production_items",
     "reviews",
+    "workflow",
     "workflow_events",
 ]

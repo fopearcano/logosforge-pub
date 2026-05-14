@@ -1,47 +1,52 @@
 import type { ReactNode } from 'react';
 import { Eyebrow } from '@/components/Eyebrow';
+import { LoginPanel } from '@/components/LoginPanel';
 
 interface AppShellProps {
   children: ReactNode;
+  onHome: () => void;
+  activeView: 'dashboard' | 'manuscript';
 }
 
-const NAV = [
-  { label: 'Dashboard', active: true },
-  { label: 'Catalogue', active: false },
-  { label: 'Manuscripts', active: false },
-  { label: 'Authors', active: false },
-  { label: 'Production', active: false },
-  { label: 'Archive', active: false },
-];
-
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, onHome, activeView }: AppShellProps) {
   return (
     <div className="min-h-full bg-ink-800">
       <header className="border-b border-rule">
-        <div className="mx-auto flex max-w-editorial items-end justify-between px-10 pb-6 pt-10">
-          <div className="flex flex-col gap-2">
+        <div className="mx-auto flex max-w-editorial flex-wrap items-end justify-between gap-6 px-10 pb-6 pt-10">
+          <button
+            type="button"
+            onClick={onHome}
+            className="flex flex-col items-start gap-2 text-left transition-opacity hover:opacity-90 focus:outline-none"
+          >
             <Eyebrow>Editio · MMXXVI</Eyebrow>
-            <h1 className="font-serif text-3xl text-parchment">
+            <span className="font-serif text-3xl text-parchment">
               LOGOSFORGE
               <span className="ml-3 align-middle font-mono text-[0.65rem] uppercase tracking-widest text-parchment-dim">
                 v0.1
               </span>
-            </h1>
-          </div>
-          <nav className="flex items-center gap-7 font-mono text-[0.72rem] uppercase tracking-widest">
-            {NAV.map((item) => (
-              <span
-                key={item.label}
+            </span>
+          </button>
+
+          <div className="flex items-center gap-8">
+            <nav className="hidden items-center gap-7 font-mono text-[0.72rem] uppercase tracking-widest sm:flex">
+              <button
+                type="button"
+                onClick={onHome}
                 className={
-                  item.active
+                  activeView === 'dashboard'
                     ? 'text-parchment'
                     : 'text-parchment-dim transition-colors hover:text-parchment-muted'
                 }
               >
-                {item.label}
-              </span>
-            ))}
-          </nav>
+                Manuscripts
+              </button>
+              <span className="text-parchment-dim/60">Authors</span>
+              <span className="text-parchment-dim/60">Production</span>
+              <span className="text-parchment-dim/60">Archive</span>
+            </nav>
+
+            <LoginPanel />
+          </div>
         </div>
       </header>
 

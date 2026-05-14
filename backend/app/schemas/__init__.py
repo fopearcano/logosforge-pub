@@ -16,6 +16,8 @@ from app.schemas.production_item import (
 )
 from app.schemas.review import ReviewCreate, ReviewRead, ReviewUpdate
 from app.schemas.workflow_event import (
+    TransitionRequest,
+    TransitionResponse,
     WorkflowEventCreate,
     WorkflowEventRead,
     WorkflowEventUpdate,
@@ -42,6 +44,8 @@ __all__ = [
     "ReviewCreate",
     "ReviewRead",
     "ReviewUpdate",
+    "TransitionRequest",
+    "TransitionResponse",
     "WorkflowEventCreate",
     "WorkflowEventRead",
     "WorkflowEventUpdate",

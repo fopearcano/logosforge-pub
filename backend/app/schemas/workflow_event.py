@@ -23,6 +23,19 @@ class WorkflowEventUpdate(BaseModel):
 class WorkflowEventRead(TimestampedRead):
     manuscript_id: str
     actor_id: Optional[str]
+    actor_name: Optional[str] = None
     from_status: Optional[WorkflowStatus]
     to_status: WorkflowStatus
     note: Optional[str]
+
+
+class TransitionRequest(BaseModel):
+    to_status: WorkflowStatus
+    comment: Optional[str] = None
+
+
+class TransitionResponse(BaseModel):
+    manuscript_id: str
+    status: WorkflowStatus
+    event: WorkflowEventRead
+    allowed_next: list[WorkflowStatus]
