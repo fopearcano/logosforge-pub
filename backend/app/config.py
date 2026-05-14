@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # placeholder attachment records do not touch disk.
     storage_path: str = (BASE_DIR / "storage").as_posix()
 
+    # Logging
+    log_level: str = "INFO"
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -1,0 +1,60 @@
+# LOGOSFORGE — production-shaped local stack.
+#
+# Brings up Postgres + the FastAPI backend + an nginx-served frontend.
+# Copy .env.example to .env at the repo root before running:
+#
+#   cp .env.example .env
+#   docker compose up --build
+#
+# Then visit http://localhost:8080 (frontend) and
+# http://localhost:8000/docs (backend OpenAPI).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-logosforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-logosforge}
+      POSTGRES_DB: ${POSTGRES_DB:-logosforge}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-logosforge}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-logosforge}:${POSTGRES_PASSWORD:-logosforge}@postgres:5432/${POSTGRES_DB:-logosforge}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:8080","http://localhost:5173"]}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      STORAGE_PATH: /app/storage
+    volumes:
+      - storage:/app/storage
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+
+volumes:
+  postgres_data:
+  storage:

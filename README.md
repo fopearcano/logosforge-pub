@@ -9,9 +9,11 @@ This repository contains the foundation, the editorial domain schema,
 a full CRUD HTTP API, JWT-based authentication with role-based access
 control, an editorial workflow engine, a full manuscript detail page,
 an expanded dashboard, a cross-entity search engine with filters, a
-dedicated read-only archive view, a production management module, and
-attachment + export systems (Markdown / JSON, with PDF reserved) —
-all wired through to a dark-themed React UI with inline editing.
+dedicated read-only archive view, a production management module,
+attachment + export systems (Markdown / JSON, with PDF reserved),
+structured logging with per-request correlation, sortable list
+endpoints, and a Postgres-ready Docker Compose stack — all wired
+through to a dark-themed React UI with inline editing.
 
 ---
 
@@ -885,6 +887,136 @@ parsing without sniffing field shapes.
 
 ---
 
+## Operations
+
+### Sortable list endpoints
+
+The two largest collections accept `sort_by` and `sort_dir` query
+parameters. Unknown values return 422 (Pydantic-enforced).
+
+| Endpoint            | `sort_by`                                            | Default      |
+| ------------------- | ---------------------------------------------------- | ------------ |
+| `/api/manuscripts`  | `title`, `status`, `genre`, `created_at`, `updated_at` | `created_at` desc |
+| `/api/authors`      | `full_name`, `country`, `created_at`                  | `full_name` asc   |
+
+### Logging and correlation
+
+A small middleware (`app/utils/middleware.py`) stamps every request
+with an `X-Request-ID` (passing through any inbound id from upstream).
+The id is bound to a `ContextVar`, so every log line emitted while
+that request is in flight carries the same `rid=` field — including
+the line written by the global access middleware:
+
+```
+2026-05-14 09:32:11 [INFO ] app.access rid=4be207b6-… GET /api/manuscripts → 200 · 11.4ms
+```
+
+Two error paths return the request id in the response body, too, so
+you can grep your logs from a curl trace:
+
+| Trigger                          | Status | Body                                                |
+| -------------------------------- | ------ | --------------------------------------------------- |
+| `IntegrityError` (FK / unique)   | `409`  | `{"detail": "Database constraint violation.", "request_id": "…"}` |
+| Unhandled exception              | `500`  | `{"detail": "Internal server error.", "request_id": "…"}` |
+
+Other handlers (404, 422, 401, 403) keep their default FastAPI
+shape; they all carry the `X-Request-ID` header via the middleware.
+
+`LOG_LEVEL` (default `INFO`) is the single setting that controls the
+loggers — uvicorn's per-request access log is silenced in favour of
+the middleware-emitted line so output stays single-source.
+
+### Test suite
+
+```
+backend/tests/
+  conftest.py                  fixtures: engine, session, anon_client,
+                               client (admin), editor_client, tokens
+  test_models.py               schema + relationship + uniqueness
+  test_routers.py              CRUD lifecycle + filters + pagination envelope
+  test_auth.py                 login / me / role gating
+  test_dashboard.py            dashboard summary endpoints
+  test_search.py               cross-entity search + filters
+  test_production_records.py   production-record CRUD + by-manuscript lookup
+  test_attachments.py          placeholder + multipart upload + download
+  test_exports.py              markdown / json bodies + PDF 501
+  test_workflow_service.py     pure-Python tests for app.services.workflow
+  test_validation.py           Pydantic bound checks across resources
+  test_pagination_sorting.py   skip / limit edges + sort_by / sort_dir
+  test_request_id.py           X-Request-ID minted, passed through, on errors
+```
+
+```bash
+cd backend
+.venv/bin/python -m pytest -q
+```
+
+The full suite runs in roughly 30 seconds against an in-memory
+SQLite engine (single-connection `StaticPool` so writes from a test
+fixture are visible to subsequent client requests).
+
+### Docker Compose
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+The stack lifts:
+
+| Service    | Image / build         | Default port |
+| ---------- | --------------------- | ------------ |
+| `postgres` | `postgres:16-alpine`  | `5432`       |
+| `backend`  | `./backend/Dockerfile` (FastAPI + Uvicorn, with `psycopg[binary]`) | `8000` |
+| `frontend` | `./frontend/Dockerfile` (multi-stage Vite build → nginx) | `8080` |
+
+`postgres_data` and `storage` are named volumes so manuscript files
+and the database persist across container restarts. Backend
+`DATABASE_URL` is wired automatically; the frontend's nginx proxies
+`/api/` to the backend service so a single origin serves both.
+
+### PostgreSQL compatibility
+
+The codebase has been Postgres-ready since the foundation — the
+SQLAlchemy URL is the only switch:
+
+```env
+# backend/.env (or in your compose .env)
+DATABASE_URL=postgresql+psycopg://user:password@host:5432/logosforge
+```
+
+`backend/requirements-postgres.txt` adds the driver:
+
+```bash
+pip install -r backend/requirements-postgres.txt
+```
+
+The SQLite-only quirks (`PRAGMA foreign_keys=ON`,
+`check_same_thread`) are gated on the URL prefix, so no other code
+needs changing. The backend Dockerfile installs the Postgres driver
+unconditionally so the same image serves either backend.
+
+### Backup placeholders
+
+`scripts/backup.sh` and `scripts/restore.sh` ship as starting points
+for an off-site backup pipeline. `backup.sh` detects whether the
+configured database is SQLite or PostgreSQL and writes a timestamped,
+gzipped dump under `$BACKUP_DIR` (default `./backups`); it also
+archives the attachment storage tree so a restored database lines up
+with the files it references. `restore.sh` accepts a single backup
+file and dispatches on extension (`*.sql.gz` → `psql`, `*.sqlite.gz`
+→ overwrite, `*.tar.gz` → extract).
+
+```bash
+DATABASE_URL=postgresql+psycopg://… ./scripts/backup.sh
+./scripts/restore.sh backups/db-20260514T093000Z.sql.gz
+```
+
+These are intentionally unmanaged — wire in your own retention,
+encryption, off-site copy, and verification before relying on them.
+
+---
+
 ## API surface
 
 All endpoints live under `/api`, are documented at `/docs`, and return
@@ -952,8 +1084,11 @@ All list endpoints additionally accept `skip` and `limit`.
 
 Schema, CRUD, authentication, the workflow engine, a full manuscript
 detail page, an expanded dashboard, cross-entity search with filters,
-a read-only archive view, the production management module, and the
-attachment + export systems (Markdown · JSON · PDF reserved) are all
-in place. Still to come: `User` management endpoints (CRUD, password
-rotation, invites), the remaining editorial views (authors index,
-contracts index), and the PDF exporter itself.
+a read-only archive view, the production management module, the
+attachment + export systems (Markdown · JSON · PDF reserved), and a
+Postgres-ready Docker Compose stack with structured logging, sortable
+list endpoints, request-id correlation, and backup placeholders are
+all in place. **117** pytest cases pass. Still to come: `User`
+management endpoints (CRUD, password rotation, invites), the
+remaining editorial views (authors index, contracts index), and the
+PDF exporter itself.

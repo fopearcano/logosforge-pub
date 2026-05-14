@@ -20,3 +20,7 @@ frontend/dist/
 frontend/.vite/
 frontend/.env
 frontend/.env.local
+
+# Operations
+.env
+backups/

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from enum import Enum
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select
 
 from app.auth import ADMIN_ONLY, AUTHED
@@ -12,12 +15,34 @@ from app.utils import Page, PageParams, apply_patch, get_or_404, page_params, pa
 router = APIRouter(prefix="/authors", tags=["authors"])
 
 
+class AuthorSortBy(str, Enum):
+    FULL_NAME = "full_name"
+    COUNTRY = "country"
+    CREATED_AT = "created_at"
+
+
+_AUTHOR_SORT_COLUMNS = {
+    AuthorSortBy.FULL_NAME: Author.full_name,
+    AuthorSortBy.COUNTRY: Author.country,
+    AuthorSortBy.CREATED_AT: Author.created_at,
+}
+
+
 @router.get("", response_model=Page[AuthorRead])
 def list_authors(
     session: Session = Depends(get_session),
     params: PageParams = Depends(page_params),
+    sort_by: AuthorSortBy = Query(
+        default=AuthorSortBy.FULL_NAME, description="Field to order results by"
+    ),
+    sort_dir: Literal["asc", "desc"] = Query(
+        default="asc", description="Sort direction"
+    ),
 ) -> Page[AuthorRead]:
-    stmt = select(Author).order_by(Author.full_name)
+    column = _AUTHOR_SORT_COLUMNS[sort_by]
+    stmt = select(Author).order_by(
+        column.desc() if sort_dir == "desc" else column.asc()
+    )
     items, total = paginate(session, stmt, params)
     return Page[AuthorRead](
         items=[AuthorRead.model_validate(i) for i in items],

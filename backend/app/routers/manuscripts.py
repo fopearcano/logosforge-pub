@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional
+from enum import Enum
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select
@@ -23,6 +24,23 @@ from app.utils import (
 router = APIRouter(prefix="/manuscripts", tags=["manuscripts"])
 
 
+class ManuscriptSortBy(str, Enum):
+    TITLE = "title"
+    STATUS = "status"
+    GENRE = "genre"
+    CREATED_AT = "created_at"
+    UPDATED_AT = "updated_at"
+
+
+_MANUSCRIPT_SORT_COLUMNS = {
+    ManuscriptSortBy.TITLE: Manuscript.title,
+    ManuscriptSortBy.STATUS: Manuscript.status,
+    ManuscriptSortBy.GENRE: Manuscript.genre,
+    ManuscriptSortBy.CREATED_AT: Manuscript.created_at,
+    ManuscriptSortBy.UPDATED_AT: Manuscript.updated_at,
+}
+
+
 @router.get("", response_model=Page[ManuscriptRead])
 def list_manuscripts(
     session: Session = Depends(get_session),
@@ -32,6 +50,13 @@ def list_manuscripts(
     ),
     genre: Optional[str] = Query(default=None, description="Filter by genre (exact match)"),
     author_id: Optional[str] = Query(default=None, description="Filter by author id"),
+    sort_by: ManuscriptSortBy = Query(
+        default=ManuscriptSortBy.CREATED_AT,
+        description="Field to order results by",
+    ),
+    sort_dir: Literal["asc", "desc"] = Query(
+        default="desc", description="Sort direction"
+    ),
 ) -> Page[ManuscriptRead]:
     stmt = select(Manuscript)
     if status_ is not None:
@@ -40,7 +65,9 @@ def list_manuscripts(
         stmt = stmt.where(Manuscript.genre == genre)
     if author_id is not None:
         stmt = stmt.where(Manuscript.author_id == author_id)
-    stmt = stmt.order_by(Manuscript.created_at.desc())
+
+    column = _MANUSCRIPT_SORT_COLUMNS[sort_by]
+    stmt = stmt.order_by(column.desc() if sort_dir == "desc" else column.asc())
 
     items, total = paginate(session, stmt, params)
     return Page[ManuscriptRead](
