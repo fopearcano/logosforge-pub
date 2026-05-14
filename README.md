@@ -5,8 +5,8 @@ LOGOSFORGE is intended as a quiet, archival workspace for the daily
 ledger of a press — manuscripts, authors, contracts, and production —
 under a single, refined surface.
 
-This repository contains the foundation only. Domain logic (catalogue,
-manuscripts, authors, production, archive) will follow in successive
+This repository contains the foundation and the editorial domain
+schema. HTTP endpoints and UI for the domain will follow in successive
 editions.
 
 ---
@@ -26,12 +26,13 @@ backend/
     main.py        FastAPI application factory
     db.py          Engine, session, init_db
     config.py      Settings (env-driven)
-    seed.py        Schema initialisation entrypoint
-    models/        SQLModel domain entities
+    seed.py        Schema initialisation + sample data
+    models/        SQLModel domain entities + enums
     routers/       HTTP routers (health, meta, …)
     services/      Business logic
     schemas/       Request/response payloads
     utils/         Cross-cutting helpers
+  tests/           Pytest suite (model + relationship checks)
 
 frontend/
   src/
@@ -65,12 +66,26 @@ pip install -r requirements.txt
 # Optional: copy environment template
 cp .env.example .env
 
-# Initialise the SQLite schema
+# Initialise the SQLite schema and load sample data
 python -m app.seed
 
 # Start the API
 uvicorn app.main:app --reload --port 8000
 ```
+
+The seed is idempotent: it loads a small editorial corpus the first
+time, and reports `Seed skipped` on subsequent runs.
+
+### Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+The suite covers entity identity, timestamps, enum persistence,
+relationship integrity, and uniqueness constraints against an
+in-memory SQLite database.
 
 The API is then reachable at:
 
@@ -123,8 +138,63 @@ npm run preview    # serve the built bundle locally
 
 ---
 
+## Domain model
+
+The editorial schema is populated by `app.models` and materialised into
+SQLite (or PostgreSQL) by `init_db()`.
+
+### Entities
+
+| Entity            | Purpose                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| `User`            | Staff account (editor, copy editor, proofreader, designer, production manager, admin).   |
+| `Author`          | External contributor; distinct from staff `User`.                                        |
+| `Manuscript`      | The work itself, carrying a current workflow status and metadata.                        |
+| `Review`          | A reader's verdict on a manuscript (`accept` / `reject` / `revise`) with optional rating.|
+| `WorkflowEvent`   | Append-only timeline of status transitions for a manuscript.                             |
+| `Contract`        | Agreement between an `Author` and the house for a given `Manuscript`.                    |
+| `ProductionItem`  | A unit of production work — layout, cover design, prepress, printing.                    |
+| `EditorialNote`   | Free-form note attached to a manuscript by a staff member.                               |
+
+Every entity inherits a `BaseEntity` mixin providing:
+
+- a UUID4 `id` (string, 36 chars — portable across SQLite and PostgreSQL),
+- `created_at`,
+- `updated_at` (auto-updated on every write via SQLAlchemy `onupdate`).
+
+### Relationships
+
+```
+Author 1—* Manuscript
+Author 1—* Contract
+User   1—* Review            (reviewer)
+User   1—* WorkflowEvent     (actor, nullable)
+User   1—* EditorialNote     (author_user)
+User   1—* ProductionItem    (assignee, nullable)
+
+Manuscript 1—* Review
+Manuscript 1—* WorkflowEvent
+Manuscript 1—* Contract
+Manuscript 1—* ProductionItem
+Manuscript 1—* EditorialNote
+```
+
+### Workflow statuses
+
+`Submitted → Under Review → Accepted | Rejected → Development Editing → Copy Editing → Proofreading → Layout → Cover Design → Prepress → Published → Archived`
+
+All statuses are exposed as the `WorkflowStatus` enum and stored
+as strings in the database for human-readable inspection and
+PostgreSQL forward-compatibility.
+
+### Other enums
+
+`UserRole`, `ReviewVerdict`, `ContractStatus`, `ProductionStage`,
+`ProductionItemStatus`, `EditorialNoteKind`.
+
+---
+
 ## Status
 
-Foundation only. The schema is empty; routers expose only `health` and
-`meta`. Subsequent editions will introduce the catalogue, manuscript
-workflow, author dossiers, contracts, and production scheduling.
+Schema complete. HTTP endpoints currently expose `health` and `meta`;
+routers for the editorial entities will be added in the next edition.
