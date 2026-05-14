@@ -1,11 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Eyebrow } from '@/components/Eyebrow';
 import { StatusDot } from '@/components/StatusDot';
+import { SectionHeading } from '@/components/SectionHeading';
+import { IndicatorCards } from '@/components/IndicatorCards';
+import { StatusCountsTable } from '@/components/StatusCountsTable';
+import { RecentActivityFeed } from '@/components/RecentActivityFeed';
+import { ActiveReviewsList } from '@/components/ActiveReviewsList';
+import { UpcomingReleasesTable } from '@/components/UpcomingReleasesTable';
+import { DeadlinesTable } from '@/components/DeadlinesTable';
 import { ManuscriptListItem } from '@/components/ManuscriptListItem';
 import { fetchHealth, fetchMeta } from '@/api/meta';
 import { fetchManuscripts } from '@/api/manuscripts';
+import {
+  fetchActiveReviews,
+  fetchDeadlines,
+  fetchRecentActivity,
+  fetchStatusCounts,
+  fetchUpcomingReleases,
+} from '@/api/dashboard';
 import type { AppMeta } from '@/types/meta';
 import type { Manuscript } from '@/types/manuscript';
+import type {
+  ActiveReviewSummary,
+  ActivityEntry,
+  DeadlineEntry,
+  StatusCount,
+  UpcomingRelease,
+} from '@/types/dashboard';
 
 type ServiceState = 'pending' | 'ok' | 'error';
 
@@ -17,32 +38,66 @@ export function Dashboard({ onOpenManuscript }: DashboardProps) {
   const [meta, setMeta] = useState<AppMeta | null>(null);
   const [service, setService] = useState<ServiceState>('pending');
   const [manuscripts, setManuscripts] = useState<Manuscript[] | null>(null);
+  const [statusCounts, setStatusCounts] = useState<StatusCount[]>([]);
+  const [activeReviews, setActiveReviews] = useState<ActiveReviewSummary[]>([]);
+  const [upcomingReleases, setUpcomingReleases] = useState<UpcomingRelease[]>([]);
+  const [deadlines, setDeadlines] = useState<DeadlineEntry[]>([]);
+  const [recentActivity, setRecentActivity] = useState<ActivityEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchMeta(), fetchHealth(), fetchManuscripts({ limit: 50 })])
-      .then(([m, , page]) => {
+    Promise.all([
+      fetchMeta(),
+      fetchHealth(),
+      fetchManuscripts({ limit: 50 }),
+      fetchStatusCounts(),
+      fetchActiveReviews(),
+      fetchUpcomingReleases(),
+      fetchDeadlines(),
+      fetchRecentActivity(),
+    ])
+      .then(([m, , page, counts, reviews, releases, due, activity]) => {
         if (cancelled) return;
         setMeta(m);
         setService('ok');
         setManuscripts(page.items);
+        setStatusCounts(counts);
+        setActiveReviews(reviews);
+        setUpcomingReleases(releases);
+        setDeadlines(due);
+        setRecentActivity(activity);
       })
       .catch((e) => {
         if (cancelled) return;
         setService('error');
-        setError(e instanceof Error ? e.message : 'Failed to load manuscripts.');
+        setError(e instanceof Error ? e.message : 'Failed to load dashboard.');
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const indicators = useMemo(() => {
+    const totals = statusCounts.reduce<Record<string, number>>((acc, c) => {
+      acc[c.status] = c.count;
+      return acc;
+    }, {});
+    const total = statusCounts.reduce((sum, c) => sum + c.count, 0);
+    const underReview = totals['under_review'] ?? 0;
+    const inProduction =
+      (totals['layout'] ?? 0) +
+      (totals['cover_design'] ?? 0) +
+      (totals['prepress'] ?? 0);
+    const overdue = deadlines.filter((d) => d.days_until < 0).length;
+    return { total, underReview, inProduction, overdue };
+  }, [statusCounts, deadlines]);
+
   const serviceLabel =
     service === 'ok' ? 'Connected' : service === 'error' ? 'Offline' : 'Probing';
 
   return (
-    <div className="flex flex-col gap-16">
+    <div className="flex flex-col gap-20">
       <section className="grid grid-cols-1 gap-10 lg:grid-cols-[2fr,1fr]">
         <div>
           <Eyebrow>Prospectus</Eyebrow>
@@ -84,7 +139,105 @@ export function Dashboard({ onOpenManuscript }: DashboardProps) {
         </aside>
       </section>
 
-      <div className="editorial-rule" />
+      {error && (
+        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
+          {error}
+        </p>
+      )}
+
+      <IndicatorCards
+        total={indicators.total}
+        underReview={indicators.underReview}
+        inProduction={indicators.inProduction}
+        overdue={indicators.overdue}
+      />
+
+      <section className="grid grid-cols-1 gap-14 lg:grid-cols-[1fr,1fr]">
+        <div>
+          <SectionHeading
+            eyebrow="Ledger"
+            title="Manuscripts by status"
+            meta={`${indicators.total} on file`}
+          />
+          <div className="mt-6">
+            <StatusCountsTable counts={statusCounts} />
+          </div>
+        </div>
+
+        <div>
+          <SectionHeading
+            eyebrow="Chronicle"
+            title="Recent workflow activity"
+            meta={
+              recentActivity.length === 0
+                ? 'Nothing yet'
+                : `${recentActivity.length} ${recentActivity.length === 1 ? 'entry' : 'entries'}`
+            }
+          />
+          <div className="mt-8">
+            <RecentActivityFeed
+              entries={recentActivity}
+              onOpenManuscript={onOpenManuscript}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-14 lg:grid-cols-[1fr,1fr]">
+        <div>
+          <SectionHeading
+            eyebrow="Reading"
+            title="Active reviews"
+            meta={
+              activeReviews.length === 0
+                ? 'None'
+                : `${activeReviews.length} manuscript${activeReviews.length === 1 ? '' : 's'}`
+            }
+          />
+          <div className="mt-6">
+            <ActiveReviewsList
+              entries={activeReviews}
+              onOpenManuscript={onOpenManuscript}
+            />
+          </div>
+        </div>
+
+        <div>
+          <SectionHeading
+            eyebrow="Forthcoming"
+            title="Upcoming releases"
+            meta={
+              upcomingReleases.length === 0
+                ? 'None scheduled'
+                : `${upcomingReleases.length} in late production`
+            }
+          />
+          <div className="mt-6">
+            <UpcomingReleasesTable
+              entries={upcomingReleases}
+              onOpenManuscript={onOpenManuscript}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <SectionHeading
+          eyebrow="Calendar"
+          title="Deadlines"
+          meta={
+            deadlines.length === 0
+              ? 'None outstanding'
+              : `${indicators.overdue > 0 ? `${indicators.overdue} overdue · ` : ''}${deadlines.length} open`
+          }
+        />
+        <div className="mt-6">
+          <DeadlinesTable
+            entries={deadlines}
+            onOpenManuscript={onOpenManuscript}
+          />
+        </div>
+      </section>
 
       <section>
         <div className="flex items-baseline justify-between">
@@ -98,11 +251,6 @@ export function Dashboard({ onOpenManuscript }: DashboardProps) {
           {manuscripts === null && !error && (
             <p className="py-10 font-mono text-[0.7rem] uppercase tracking-widest text-parchment-dim">
               Loading…
-            </p>
-          )}
-          {error && (
-            <p className="py-10 font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
-              {error}
             </p>
           )}
           {manuscripts !== null && manuscripts.length === 0 && (

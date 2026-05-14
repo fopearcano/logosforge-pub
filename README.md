@@ -7,9 +7,10 @@ under a single, refined surface.
 
 This repository contains the foundation, the editorial domain schema,
 a full CRUD HTTP API, JWT-based authentication with role-based access
-control, an editorial workflow engine, and a full manuscript detail
-page wired through to a dark-themed React UI with inline editing,
-timeline, reviews, contracts, production board, and editorial notes.
+control, an editorial workflow engine, a full manuscript detail page,
+and an expanded dashboard with status ledger, active reviews,
+upcoming releases, deadlines, and recent activity — all wired through
+to a dark-themed React UI with inline editing.
 
 ---
 
@@ -436,6 +437,61 @@ the feature is visible in the layout.
 
 ---
 
+## Dashboard
+
+The dashboard composes five widgets backed by a dedicated
+`/api/dashboard` router.
+
+### Endpoints
+
+| Method | Path                                | Returns                                                                |
+| ------ | ----------------------------------- | ---------------------------------------------------------------------- |
+| `GET`  | `/api/dashboard/status-counts`      | All 12 workflow statuses with their counts (zero rows included).       |
+| `GET`  | `/api/dashboard/active-reviews`     | Manuscripts in `under_review` with reviewer count and latest verdict.  |
+| `GET`  | `/api/dashboard/upcoming-releases`  | Manuscripts in `layout` / `cover_design` / `prepress`, closest first.  |
+| `GET`  | `/api/dashboard/deadlines`          | Open `ProductionItem` rows with due dates, soonest first.              |
+| `GET`  | `/api/dashboard/recent-activity`    | Recent `WorkflowEvent` rows with manuscript title and actor name.      |
+
+All five are public reads. Each row includes the `manuscript_id` so
+the UI can deep-link to the [manuscript detail page](#manuscript-detail-page).
+`limit` defaults to 20 (max 100).
+
+### Layout
+
+```
+Prospectus heading                Colophon (service, edition, env, count)
+─────────────────────────────────────────────────────────────────────────
+Indicator cards (4)
+  · Manuscripts on the desk · Under review · In production · Overdue
+─────────────────────────────────────────────────────────────────────────
+Manuscripts by status (table) │ Recent workflow activity (timeline feed)
+─────────────────────────────────────────────────────────────────────────
+Active reviews (list)         │ Upcoming releases (table)
+─────────────────────────────────────────────────────────────────────────
+Deadlines (table, full width)
+─────────────────────────────────────────────────────────────────────────
+Manuscripts in the house (existing list)
+```
+
+The grid collapses to a single column below `lg`. Each widget loads
+through the API in parallel; the indicator cards derive from the
+already-fetched status counts and deadlines, so no extra endpoint
+exists for them.
+
+### Status indicators
+
+- **Status counts**: every status renders as a row with a hairline
+  rule whose length is proportional to its count and capped against
+  the page maximum — a quiet bar chart in print register.
+- **Recent activity**: a vertical chronicle. Each entry shows the
+  manuscript (clickable), the `from → to` `StatusBadge` pair, the
+  actor, and any transition note.
+- **Deadlines**: relative time renders as "in N days" or "N days
+  overdue" — the latter switches to the accent colour, mirrored by
+  the indicator card.
+
+---
+
 ## API surface
 
 All endpoints live under `/api`, are documented at `/docs`, and return
@@ -501,8 +557,8 @@ All list endpoints additionally accept `skip` and `limit`.
 
 ## Status
 
-Schema, CRUD, authentication, the workflow engine, and a full
-manuscript detail page are in place. Still to come: `User` management
-endpoints (CRUD, password rotation, invites), the rest of the
-editorial views (authors index, contracts index, production board,
-archive), and actual file attachment plumbing.
+Schema, CRUD, authentication, the workflow engine, a full manuscript
+detail page, and an expanded dashboard are in place. Still to come:
+`User` management endpoints (CRUD, password rotation, invites), the
+remaining editorial views (authors index, contracts index, production
+board, archive), and actual file attachment plumbing.
