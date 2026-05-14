@@ -12,6 +12,7 @@ import { ProductionRecordPanel } from '@/components/ProductionRecordPanel';
 import { ReviewsList } from '@/components/ReviewsList';
 import { EditorialNotesPanel } from '@/components/EditorialNotesPanel';
 import { AttachmentsPanel } from '@/components/AttachmentsPanel';
+import { AIPanel } from '@/components/AIPanel';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useAuth } from '@/auth/AuthContext';
 import { ApiError } from '@/api/client';
@@ -295,6 +296,7 @@ export function ManuscriptView({
             items={productionItems}
             onOpenItem={onOpenProductionItem}
           />
+          <AIPanel manuscriptId={manuscript.id} readOnly={archived} />
           <AttachmentsPanel manuscriptId={manuscript.id} readOnly={archived} />
         </aside>
       </div>

@@ -12,8 +12,10 @@ an expanded dashboard, a cross-entity search engine with filters, a
 dedicated read-only archive view, a production management module,
 attachment + export systems (Markdown / JSON, with PDF reserved),
 structured logging with per-request correlation, sortable list
-endpoints, and a Postgres-ready Docker Compose stack — all wired
-through to a dark-themed React UI with inline editing.
+endpoints, a Postgres-ready Docker Compose stack, and AI integration
+scaffolding (OpenAI / OpenRouter / LM Studio compatible, with a
+dry-run default) — all wired through to a dark-themed React UI with
+inline editing.
 
 ---
 
@@ -1017,6 +1019,145 @@ encryption, off-site copy, and verification before relying on them.
 
 ---
 
+## AI integration
+
+A small abstraction layer prepares the system for AI-assisted editorial
+workflows. The actual analytical work is intentionally light — the
+foundation is the **provider layer**, the **feature registry**, and the
+**persistence surface**.
+
+### Provider abstraction
+
+```
+app/services/ai/providers/
+  ├── base.py           Protocol — LLMProvider, ChatMessage, CompletionResult
+  ├── dry_run.py        DryRunProvider — canned, deterministic, no network
+  ├── openai_compat.py  OpenAICompatibleProvider — POST /v1/chat/completions
+  └── registry.py       get_provider(), reset_provider_cache()
+```
+
+`OpenAICompatibleProvider` is enough for everything in the
+foundation's matrix — it's the same wire format for OpenAI itself,
+OpenRouter, LM Studio, llama.cpp's server, and Ollama running its
+OpenAI shim. The registry picks one of:
+
+| `AI_PROVIDER` | Default base URL                                | Use                |
+| ------------- | ----------------------------------------------- | ------------------ |
+| `dry_run`     | —                                               | Default; canned    |
+| `openai`      | `https://api.openai.com/v1`                     | Hosted             |
+| `openrouter`  | `https://openrouter.ai/api/v1`                  | Multi-model router |
+| `lm_studio`   | `http://localhost:1234/v1`                      | Local LM Studio    |
+| `openai_compatible` | (set `AI_BASE_URL` explicitly)            | Anything else      |
+
+Configuration (`backend/.env`):
+
+```env
+AI_PROVIDER=lm_studio
+AI_BASE_URL=http://localhost:1234/v1     # optional; defaults above
+AI_API_KEY=                              # if the backend requires one
+AI_MODEL=qwen2.5-14b-instruct
+AI_REQUEST_TIMEOUT=60
+```
+
+The dry-run provider ships **canned, feature-aware JSON** so every
+feature, endpoint, and UI panel works end-to-end without leaving the
+process. It is the default in development, in tests, and whenever
+`AI_PROVIDER` is unset.
+
+### Features
+
+```
+app/services/ai/features/
+  ├── summarize.py              SummaryResult           one-line · summary · themes
+  ├── style_analysis.py         StyleAnalysisResult     register · voice · rhythm · concerns
+  ├── editorial_suggestions.py  EditorialSuggestions    [{kind, title, rationale}]
+  ├── semantic_tags.py          SemanticTagsResult      [tags]
+  └── consistency.py            ConsistencyCheckResult  [{kind, where, description}]
+```
+
+Every feature is a small function:
+
+```
+run_<feature>(bundle, provider) -> <FeatureResult>
+```
+
+— builds a JSON-oriented prompt from a shared `manuscript_excerpt`
+helper, calls the provider, and runs a permissive JSON parser
+(`parse_json_object`) that tolerates prose around the JSON object.
+The router dispatches generically via a registry:
+
+```python
+FEATURES: dict[AIFeature, Callable] = {
+    AIFeature.SUMMARIZE: run_summarize,
+    AIFeature.STYLE_ANALYSIS: run_style_analysis,
+    AIFeature.EDITORIAL_SUGGESTIONS: run_editorial_suggestions,
+    AIFeature.SEMANTIC_TAGS: run_semantic_tags,
+    AIFeature.CONSISTENCY_CHECK: run_consistency_check,
+}
+```
+
+Adding a sixth feature is a new file plus a one-line registration.
+
+### Endpoints
+
+```
+POST /api/ai/manuscripts/{id}/summarize              auth
+POST /api/ai/manuscripts/{id}/style-analysis         auth
+POST /api/ai/manuscripts/{id}/editorial-suggestions  auth
+POST /api/ai/manuscripts/{id}/semantic-tags          auth
+POST /api/ai/manuscripts/{id}/consistency-check      auth
+
+GET  /api/ai/manuscripts/{id}/insights[?feature=…]   public read
+DELETE /api/ai/insights/{id}                         auth
+
+GET  /api/ai/providers                               public read; reports
+                                                     the active backend +
+                                                     known list
+```
+
+Each `POST` returns:
+
+```json
+{
+  "feature": "summarize",
+  "provider": "dry_run",
+  "model": "stub",
+  "generated_at": "2026-05-14T10:39:11+00:00",
+  "insight_id": "78b584e4-…",
+  "result": { "one_line": "…", "summary": "…", "themes": ["…"] }
+}
+```
+
+### Persistence
+
+Every run inserts an `AIInsight` row:
+
+```
+ai_insights:
+  id, manuscript_id (FK), feature (enum), provider, model,
+  payload (JSON-encoded text), created_at, updated_at
+```
+
+This gives the UI a cached "last run" per (manuscript, feature) to
+display without re-running the model, plus a primitive audit trail.
+The `GET /api/ai/manuscripts/{id}/insights` endpoint returns them
+newest-first, filterable by `feature`.
+
+### Frontend touchpoint
+
+The manuscript-view sidebar gains an `AIPanel` section. It calls
+`/api/ai/providers` on mount to label whether the backend is live or
+dry-run, fetches the cached `AIInsight`s for the manuscript, and
+shows each feature as a row with a "Run" / "Re-run" button. Expanding
+a row renders the raw `result` as monospace JSON — a deliberately
+unstyled view, since the meaningful display surface per feature is
+work for the next iteration.
+
+The panel disables Run when the manuscript is in the archive
+read-only state, matching the rest of the page's vocabulary.
+
+---
+
 ## API surface
 
 All endpoints live under `/api`, are documented at `/docs`, and return
@@ -1085,10 +1226,12 @@ All list endpoints additionally accept `skip` and `limit`.
 Schema, CRUD, authentication, the workflow engine, a full manuscript
 detail page, an expanded dashboard, cross-entity search with filters,
 a read-only archive view, the production management module, the
-attachment + export systems (Markdown · JSON · PDF reserved), and a
-Postgres-ready Docker Compose stack with structured logging, sortable
-list endpoints, request-id correlation, and backup placeholders are
-all in place. **117** pytest cases pass. Still to come: `User`
-management endpoints (CRUD, password rotation, invites), the
-remaining editorial views (authors index, contracts index), and the
-PDF exporter itself.
+attachment + export systems (Markdown · JSON · PDF reserved), the
+AI integration scaffolding (dry-run default; OpenAI / OpenRouter /
+LM Studio compatible), structured logging with request-id correlation,
+sortable list endpoints, a Postgres-ready Docker Compose stack, and
+backup placeholders are all in place. **140** pytest cases pass.
+Still to come: `User` management endpoints (CRUD, password rotation,
+invites), the remaining editorial views (authors index, contracts
+index), the PDF exporter itself, and per-feature renderings for the
+AI panel.

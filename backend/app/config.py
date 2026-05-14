@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # --- AI integration ---
+    # ``dry_run`` ships canned responses without touching the network and is
+    # the default for the foundation. Set to ``openai`` / ``openrouter`` /
+    # ``lm_studio`` / ``openai_compatible`` to talk to a real backend.
+    ai_provider: str = "dry_run"
+    ai_base_url: str | None = None
+    ai_api_key: str | None = None
+    ai_model: str = "gpt-4o-mini"
+    ai_request_timeout: float = 60.0
+
 
 @lru_cache
 def get_settings() -> Settings:

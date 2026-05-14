@@ -1,6 +1,7 @@
 """API routers. Each module exposes a `router` attribute mounted in main.py."""
 
 from app.routers import (
+    ai,
     attachments,
     auth,
     authors,
@@ -36,10 +37,12 @@ ALL_ROUTERS = (
     editorial_notes,
     attachments,
     exports,
+    ai,
 )
 
 __all__ = [
     "ALL_ROUTERS",
+    "ai",
     "attachments",
     "auth",
     "authors",

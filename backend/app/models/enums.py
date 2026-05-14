@@ -89,3 +89,13 @@ class ExportFormat(str, Enum):
     MARKDOWN = "markdown"
     JSON = "json"
     PDF = "pdf"  # registered placeholder — implementation pending
+
+
+class AIFeature(str, Enum):
+    """The editorial AI features exposed at /api/ai/manuscripts/..."""
+
+    SUMMARIZE = "summarize"
+    STYLE_ANALYSIS = "style_analysis"
+    EDITORIAL_SUGGESTIONS = "editorial_suggestions"
+    SEMANTIC_TAGS = "semantic_tags"
+    CONSISTENCY_CHECK = "consistency_check"

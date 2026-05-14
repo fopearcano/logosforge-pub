@@ -4,11 +4,13 @@ Importing this package registers every SQLModel table with the shared
 metadata registry, so `init_db()` can materialise them against the
 configured database engine.
 """
+from app.models.ai_insight import AIInsight
 from app.models.attachment import Attachment
 from app.models.author import Author
 from app.models.contract import Contract
 from app.models.editorial_note import EditorialNote
 from app.models.enums import (
+    AIFeature,
     AttachmentKind,
     ContractStatus,
     EditorialNoteKind,
@@ -28,6 +30,8 @@ from app.models.user import User
 from app.models.workflow_event import WorkflowEvent
 
 __all__ = [
+    "AIFeature",
+    "AIInsight",
     "Attachment",
     "AttachmentKind",
     "Author",

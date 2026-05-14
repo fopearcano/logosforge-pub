@@ -6,6 +6,7 @@ from app.models.base import BaseEntity
 from app.models.enums import WorkflowStatus
 
 if TYPE_CHECKING:
+    from app.models.ai_insight import AIInsight
     from app.models.attachment import Attachment
     from app.models.author import Author
     from app.models.contract import Contract
@@ -40,3 +41,4 @@ class Manuscript(BaseEntity, table=True):
         sa_relationship_kwargs={"uselist": False},
     )
     attachments: list["Attachment"] = Relationship(back_populates="manuscript")
+    ai_insights: list["AIInsight"] = Relationship(back_populates="manuscript")
