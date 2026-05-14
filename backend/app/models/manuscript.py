@@ -6,6 +6,7 @@ from app.models.base import BaseEntity
 from app.models.enums import WorkflowStatus
 
 if TYPE_CHECKING:
+    from app.models.attachment import Attachment
     from app.models.author import Author
     from app.models.contract import Contract
     from app.models.editorial_note import EditorialNote
@@ -38,3 +39,4 @@ class Manuscript(BaseEntity, table=True):
         back_populates="manuscript",
         sa_relationship_kwargs={"uselist": False},
     )
+    attachments: list["Attachment"] = Relationship(back_populates="manuscript")

@@ -11,7 +11,8 @@ import { ProductionPanel } from '@/components/ProductionPanel';
 import { ProductionRecordPanel } from '@/components/ProductionRecordPanel';
 import { ReviewsList } from '@/components/ReviewsList';
 import { EditorialNotesPanel } from '@/components/EditorialNotesPanel';
-import { AttachmentsPlaceholder } from '@/components/AttachmentsPlaceholder';
+import { AttachmentsPanel } from '@/components/AttachmentsPanel';
+import { ExportMenu } from '@/components/ExportMenu';
 import { useAuth } from '@/auth/AuthContext';
 import { ApiError } from '@/api/client';
 import {
@@ -191,7 +192,10 @@ export function ManuscriptView({
       )}
 
       <header className="mt-6 flex flex-col gap-4 border-b border-rule pb-10">
-        <Eyebrow>{manuscript.genre ?? 'Untitled folio'}</Eyebrow>
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <Eyebrow>{manuscript.genre ?? 'Untitled folio'}</Eyebrow>
+          <ExportMenu manuscriptId={manuscript.id} />
+        </div>
 
         <EditableField
           value={manuscript.title}
@@ -291,7 +295,7 @@ export function ManuscriptView({
             items={productionItems}
             onOpenItem={onOpenProductionItem}
           />
-          <AttachmentsPlaceholder />
+          <AttachmentsPanel manuscriptId={manuscript.id} readOnly={archived} />
         </aside>
       </div>
     </div>

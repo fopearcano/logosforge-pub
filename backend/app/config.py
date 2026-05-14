@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
+    # Local file storage root. Real uploads land under this directory;
+    # placeholder attachment records do not touch disk.
+    storage_path: str = (BASE_DIR / "storage").as_posix()
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -9,10 +9,9 @@ This repository contains the foundation, the editorial domain schema,
 a full CRUD HTTP API, JWT-based authentication with role-based access
 control, an editorial workflow engine, a full manuscript detail page,
 an expanded dashboard, a cross-entity search engine with filters, a
-dedicated read-only archive view, and a production management module
-(per-title production records, a board, a release calendar, and
-production item detail pages) — all wired through to a dark-themed
-React UI with inline editing.
+dedicated read-only archive view, a production management module, and
+attachment + export systems (Markdown / JSON, with PDF reserved) —
+all wired through to a dark-themed React UI with inline editing.
 
 ---
 
@@ -685,6 +684,155 @@ the dashboard, the manuscript view, and the item detail page.
 
 ---
 
+## Attachments and exports
+
+### Attachment metadata
+
+`Attachment` records sit alongside the manuscript and capture every
+file an editorial house wants tracked, whether or not the bytes
+themselves are on disk yet.
+
+```
+id, manuscript_id, uploader_id,
+filename, content_type, size_bytes,
+kind         (manuscript_draft · editor_marked_copy · cover_artwork
+              · proof · contract_scan · other),
+storage_key,                  # opaque handle; "placeholder:…" for stubs
+sha256, description,
+created_at, updated_at
+```
+
+Two write paths share a single model:
+
+| Mode          | When                                                                   |
+| ------------- | ---------------------------------------------------------------------- |
+| **Placeholder** | `POST /api/attachments` (JSON) — records that a file is expected but no bytes are on disk. `storage_key` is set to `placeholder:<uuid>`. |
+| **Real upload** | `POST /api/attachments/upload` (multipart) — streams bytes through the storage backend, records the resulting `size_bytes` and `sha256`. |
+
+Both paths require authentication; DELETE is admin-only.
+
+### Local storage architecture
+
+The storage layer is a small backend abstraction:
+
+```
+backend/app/services/storage.py
+  ├── safe_filename(name)       # slug-clean a user-supplied filename
+  ├── LocalFileStorage(root)
+  │     ├── path_for(key)
+  │     ├── exists(key)
+  │     ├── write(key, stream)  → StoredFile(storage_key, size, sha256)
+  │     └── delete(key)
+  └── get_storage()             # module-level singleton from settings
+```
+
+The root directory is configured via the `STORAGE_PATH` env var (see
+`.env.example`); it defaults to `backend/storage/`. The directory is
+gitignored. To swap in S3, MinIO, or another backend, implement the
+same interface and replace what `get_storage()` returns — the
+attachments router never reaches past the abstraction.
+
+Tests use pytest's `tmp_path` and monkeypatch the cached backend to a
+temporary directory, so the real disk is never touched.
+
+### Attachment endpoints
+
+```
+GET    /api/attachments                       list (paginated, filter by manuscript_id, kind)
+GET    /api/attachments/{id}                  fetch metadata
+POST   /api/attachments                       placeholder create  (auth)
+POST   /api/attachments/upload                multipart upload   (auth)
+PATCH  /api/attachments/{id}                  edit kind/description/filename (auth)
+DELETE /api/attachments/{id}                  remove + delete bytes (admin)
+GET    /api/attachments/{id}/download         stream bytes; 410 for placeholders
+```
+
+### Exports
+
+Manuscript exports live behind a small registry so a future PDF
+exporter can be wired in by registering an `Exporter` for
+`ExportFormat.PDF` — no changes to the route are required.
+
+```
+backend/app/services/exports/
+  ├── base.py                # Exporter protocol + ManuscriptExportBundle
+  ├── bundle.py              # build_bundle(session, manuscript_id)
+  ├── markdown_export.py     # MarkdownExporter
+  ├── json_export.py         # JSONExporter
+  └── __init__.py            # EXPORTERS registry  → ExportFormat → Exporter
+```
+
+Every exporter consumes the same bundle: the manuscript and author,
+plus the full workflow chronicle, every review, and every editorial
+note. The endpoint dispatches on `?format=`:
+
+```
+GET /api/manuscripts/{id}/export?format=markdown   →  200 text/markdown
+GET /api/manuscripts/{id}/export?format=json       →  200 application/json
+GET /api/manuscripts/{id}/export?format=pdf        →  501 Not Implemented
+GET /api/exports/formats                           →  list of supported formats
+```
+
+Responses include a `Content-Disposition: attachment; filename="<slug>.<ext>"`
+header so browsers offer a file download.
+
+#### Markdown shape
+
+```
+# {title}
+## _{subtitle}_
+
+> {author} · {country}
+
+## Metadata
+| Field | Value | …
+
+## Synopsis
+{prose}
+
+## Workflow chronicle
+| When | From | To | By | Note |
+
+## Reviews
+### {verdict} · {rating}/5 · {reviewer}
+{summary}
+
+## Editorial notes
+### {kind} · 📌 Pinned · {author}
+{body}
+```
+
+#### JSON shape
+
+```
+{
+  "exported_at": "<iso datetime>",
+  "schema_version": 1,
+  "manuscript": { … },
+  "author":     { … } | null,
+  "workflow_history": [ … ],
+  "reviews":         [ … ],
+  "editorial_notes": [ … ]
+}
+```
+
+`schema_version` lets future archives detect the layout they're
+parsing without sniffing field shapes.
+
+### Frontend touchpoints
+
+- **`AttachmentsPanel`** (manuscript-view sidebar) — lists attachments
+  with filename, kind, size, uploader, and creation date; "Placeholder"
+  chip when there are no bytes. A "Record a file…" form below the list
+  posts the placeholder record. Disabled when the manuscript is in
+  the archive read-only state.
+- **`ExportMenu`** (manuscript-view header) — two anchor links that
+  hit the export endpoint with the appropriate `?format=`; the
+  browser receives the file via Content-Disposition. A third tile
+  shows `PDF · soon` as a registered-but-not-implemented placeholder.
+
+---
+
 ## API surface
 
 All endpoints live under `/api`, are documented at `/docs`, and return
@@ -752,8 +900,8 @@ All list endpoints additionally accept `skip` and `limit`.
 
 Schema, CRUD, authentication, the workflow engine, a full manuscript
 detail page, an expanded dashboard, cross-entity search with filters,
-a read-only archive view, and the production management module
-(records, board, calendar, item detail) are all in place. Still to
-come: `User` management endpoints (CRUD, password rotation, invites),
-the remaining editorial views (authors index, contracts index), and
-actual file attachment plumbing.
+a read-only archive view, the production management module, and the
+attachment + export systems (Markdown · JSON · PDF reserved) are all
+in place. Still to come: `User` management endpoints (CRUD, password
+rotation, invites), the remaining editorial views (authors index,
+contracts index), and the PDF exporter itself.

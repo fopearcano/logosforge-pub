@@ -1,5 +1,10 @@
 """Pydantic schemas used for request/response payloads."""
 
+from app.schemas.attachment import (
+    AttachmentPlaceholderCreate,
+    AttachmentRead,
+    AttachmentUpdate,
+)
 from app.schemas.auth import CurrentUserRead, TokenResponse
 from app.schemas.author import AuthorCreate, AuthorRead, AuthorUpdate
 from app.schemas.contract import ContractCreate, ContractRead, ContractUpdate
@@ -30,6 +35,9 @@ from app.schemas.workflow_event import (
 )
 
 __all__ = [
+    "AttachmentPlaceholderCreate",
+    "AttachmentRead",
+    "AttachmentUpdate",
     "AuthorCreate",
     "AuthorRead",
     "AuthorUpdate",

@@ -6,6 +6,7 @@ from app.models.base import BaseEntity
 from app.models.enums import UserRole
 
 if TYPE_CHECKING:
+    from app.models.attachment import Attachment
     from app.models.editorial_note import EditorialNote
     from app.models.production_item import ProductionItem
     from app.models.review import Review
@@ -25,3 +26,4 @@ class User(BaseEntity, table=True):
     workflow_events: list["WorkflowEvent"] = Relationship(back_populates="actor")
     editorial_notes: list["EditorialNote"] = Relationship(back_populates="author_user")
     production_assignments: list["ProductionItem"] = Relationship(back_populates="assignee")
+    uploaded_attachments: list["Attachment"] = Relationship(back_populates="uploader")

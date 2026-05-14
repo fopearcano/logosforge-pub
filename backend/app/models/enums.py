@@ -70,3 +70,22 @@ class StreamStatus(str, Enum):
     IN_PROGRESS = "in_progress"
     BLOCKED = "blocked"
     COMPLETE = "complete"
+
+
+class AttachmentKind(str, Enum):
+    """Categories of file attached to a manuscript."""
+
+    MANUSCRIPT_DRAFT = "manuscript_draft"
+    EDITOR_MARKED_COPY = "editor_marked_copy"
+    COVER_ARTWORK = "cover_artwork"
+    PROOF = "proof"
+    CONTRACT_SCAN = "contract_scan"
+    OTHER = "other"
+
+
+class ExportFormat(str, Enum):
+    """Available manuscript export formats."""
+
+    MARKDOWN = "markdown"
+    JSON = "json"
+    PDF = "pdf"  # registered placeholder — implementation pending
