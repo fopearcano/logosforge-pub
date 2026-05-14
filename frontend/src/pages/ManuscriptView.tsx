@@ -44,7 +44,7 @@ interface ManuscriptViewProps {
 
 export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
   const { status: authStatus } = useAuth();
-  const canEdit = authStatus === 'authenticated';
+  const authedAndEditable = authStatus === 'authenticated';
 
   const [manuscript, setManuscript] = useState<Manuscript | null>(null);
   const [author, setAuthor] = useState<Author | null>(null);
@@ -145,6 +145,8 @@ export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
   }
 
   const allowedNext = transitions[manuscript.status] ?? [];
+  const archived = manuscript.status === 'archived';
+  const canEdit = authedAndEditable && !archived;
 
   return (
     <div>
@@ -155,6 +157,17 @@ export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
       >
         ← Back to manuscripts
       </button>
+
+      {archived && (
+        <div className="mt-6 flex items-center justify-between border border-rule bg-ink-700/40 px-6 py-3">
+          <span className="font-mono text-[0.68rem] uppercase tracking-widest text-parchment-muted">
+            Archive · read-only
+          </span>
+          <span className="font-mono text-[0.62rem] uppercase tracking-widest text-parchment-dim">
+            Editing, transitions, and new notes are disabled.
+          </span>
+        </div>
+      )}
 
       <header className="mt-6 flex flex-col gap-4 border-b border-rule pb-10">
         <Eyebrow>{manuscript.genre ?? 'Untitled folio'}</Eyebrow>
@@ -226,6 +239,7 @@ export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
           <EditorialNotesPanel
             manuscriptId={manuscript.id}
             notes={editorialNotes}
+            readOnly={archived}
             onCreate={handleNoteCreated}
           />
 
@@ -233,7 +247,11 @@ export function ManuscriptView({ manuscriptId, onBack }: ManuscriptViewProps) {
         </div>
 
         <aside className="flex flex-col gap-8">
-          <MetadataPanel manuscript={manuscript} onPatch={handlePatch} />
+          <MetadataPanel
+            manuscript={manuscript}
+            canEdit={canEdit}
+            onPatch={handlePatch}
+          />
           <AuthorPanel author={author} />
           <TransitionControl
             manuscriptId={manuscript.id}

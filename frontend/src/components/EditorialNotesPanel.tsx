@@ -13,6 +13,7 @@ import {
 interface EditorialNotesPanelProps {
   manuscriptId: string;
   notes: EditorialNote[];
+  readOnly?: boolean;
   onCreate: (note: EditorialNote) => void;
 }
 
@@ -36,10 +37,11 @@ function sortNotes(notes: EditorialNote[]): EditorialNote[] {
 export function EditorialNotesPanel({
   manuscriptId,
   notes,
+  readOnly = false,
   onCreate,
 }: EditorialNotesPanelProps) {
   const { user, status } = useAuth();
-  const authed = status === 'authenticated' && user;
+  const authed = !readOnly && status === 'authenticated' && user;
 
   const [kind, setKind] = useState<EditorialNoteKind>('general');
   const [body, setBody] = useState('');
@@ -126,7 +128,7 @@ export function EditorialNotesPanel({
           <Eyebrow>Leave a note</Eyebrow>
           {!authed && (
             <span className="font-mono text-[0.62rem] uppercase tracking-widest text-parchment-dim">
-              Sign in to write
+              {readOnly ? 'Archived · read-only' : 'Sign in to write'}
             </span>
           )}
         </div>

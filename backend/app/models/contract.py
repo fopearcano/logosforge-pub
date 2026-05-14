@@ -26,6 +26,7 @@ class Contract(BaseEntity, table=True):
     )
     royalty_rate: Optional[float] = Field(default=None, ge=0, le=1)
     currency: str = Field(default="USD", max_length=3)
+    rights_territory: Optional[str] = Field(default=None, max_length=100, index=True)
     signed_at: Optional[datetime] = Field(default=None)
     terms: Optional[str] = Field(default=None)
 

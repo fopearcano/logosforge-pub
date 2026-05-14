@@ -40,6 +40,9 @@ export const fetchManuscript = (id: string) =>
 
 export const fetchAuthor = (id: string) => apiFetch<Author>(`/authors/${id}`);
 
+export const fetchAuthors = () =>
+  apiFetch<Page<Author>>(`/authors?limit=200`);
+
 export const fetchWorkflowHistory = (id: string) =>
   apiFetch<WorkflowEvent[]>(`/manuscripts/${id}/workflow-events`);
 

@@ -17,6 +17,7 @@ class ContractCreate(BaseModel):
     advance_amount: Optional[Decimal] = Field(default=None, ge=0)
     royalty_rate: Optional[float] = Field(default=None, ge=0, le=1)
     currency: str = Field(default="USD", min_length=3, max_length=3)
+    rights_territory: Optional[str] = Field(default=None, max_length=100)
     signed_at: Optional[datetime] = None
     terms: Optional[str] = None
 
@@ -26,6 +27,7 @@ class ContractUpdate(BaseModel):
     advance_amount: Optional[Decimal] = Field(default=None, ge=0)
     royalty_rate: Optional[float] = Field(default=None, ge=0, le=1)
     currency: Optional[str] = Field(default=None, min_length=3, max_length=3)
+    rights_territory: Optional[str] = Field(default=None, max_length=100)
     signed_at: Optional[datetime] = None
     terms: Optional[str] = None
 
@@ -37,5 +39,6 @@ class ContractRead(TimestampedRead):
     advance_amount: Optional[Decimal]
     royalty_rate: Optional[float]
     currency: str
+    rights_territory: Optional[str]
     signed_at: Optional[datetime]
     terms: Optional[str]

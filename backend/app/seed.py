@@ -330,6 +330,7 @@ def _seed_contracts(
             advance_amount=Decimal("4500.00"),
             royalty_rate=0.12,
             currency="EUR",
+            rights_territory="world",
             signed_at=utcnow() - timedelta(days=300),
             terms="Standard trade contract, first edition only.",
         ),
@@ -340,6 +341,7 @@ def _seed_contracts(
             advance_amount=Decimal("7500.00"),
             royalty_rate=0.15,
             currency="EUR",
+            rights_territory="europe",
             signed_at=utcnow() - timedelta(days=180),
         ),
         Contract(
@@ -349,6 +351,7 @@ def _seed_contracts(
             advance_amount=Decimal("3000.00"),
             royalty_rate=0.10,
             currency="EUR",
+            rights_territory="world",
         ),
     ]
     session.add_all(contracts)

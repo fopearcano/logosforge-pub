@@ -1,4 +1,3 @@
-import { useAuth } from '@/auth/AuthContext';
 import { EditableField } from './EditableField';
 import { SidebarSection } from './SidebarSection';
 import type { Manuscript } from '@/types/manuscript';
@@ -6,6 +5,7 @@ import type { ManuscriptPatch } from '@/api/manuscripts';
 
 interface MetadataPanelProps {
   manuscript: Manuscript;
+  canEdit: boolean;
   onPatch: (patch: ManuscriptPatch) => Promise<void>;
 }
 
@@ -17,10 +17,7 @@ function formatDate(iso: string): string {
   });
 }
 
-export function MetadataPanel({ manuscript, onPatch }: MetadataPanelProps) {
-  const { status } = useAuth();
-  const canEdit = status === 'authenticated';
-
+export function MetadataPanel({ manuscript, canEdit, onPatch }: MetadataPanelProps) {
   return (
     <SidebarSection title="Metadata">
       <dl className="grid grid-cols-[auto,1fr] gap-x-6 gap-y-4 text-sm">

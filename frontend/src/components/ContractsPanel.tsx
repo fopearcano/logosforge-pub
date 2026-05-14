@@ -74,6 +74,16 @@ export function ContractsPanel({ contracts }: ContractsPanelProps) {
                   Royalty
                 </dt>
                 <dd className="font-serif text-parchment">{formatRoyalty(c.royalty_rate)}</dd>
+                {c.rights_territory && (
+                  <>
+                    <dt className="font-mono text-[0.6rem] uppercase tracking-widest text-parchment-dim">
+                      Territory
+                    </dt>
+                    <dd className="font-mono text-[0.78rem] uppercase tracking-wider text-parchment">
+                      {c.rights_territory}
+                    </dd>
+                  </>
+                )}
               </dl>
 
               {c.terms && (

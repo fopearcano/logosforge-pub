@@ -8,9 +8,9 @@ under a single, refined surface.
 This repository contains the foundation, the editorial domain schema,
 a full CRUD HTTP API, JWT-based authentication with role-based access
 control, an editorial workflow engine, a full manuscript detail page,
-and an expanded dashboard with status ledger, active reviews,
-upcoming releases, deadlines, and recent activity — all wired through
-to a dark-themed React UI with inline editing.
+an expanded dashboard, a cross-entity search engine with filters, and
+a dedicated read-only archive view — all wired through to a
+dark-themed React UI with inline editing.
 
 ---
 
@@ -492,6 +492,109 @@ exists for them.
 
 ---
 
+## Search and archive
+
+### Search
+
+A single cross-entity search endpoint backs the reading-room page.
+
+```
+GET /api/search
+    ?q=<term>                       required, min length 1
+    [&status=<workflow_status>]     applies to manuscripts and parents
+    [&genre=<exact>]                applies via the manuscript table
+    [&year=<YYYY>]                  filters by manuscript created_at year
+    [&author_id=<uuid>]             filters to a single author / their work
+    [&rights_territory=<value>]     applies to contracts only
+    [&limit=<1..100>]               default 20 per section
+```
+
+The query `q` is matched case-insensitively (`ILIKE %q%`) against:
+
+| Entity            | Columns matched                                       |
+| ----------------- | ----------------------------------------------------- |
+| `Manuscript`      | `title`, `subtitle`, `synopsis`, `genre`              |
+| `Author`          | `full_name`, `biography`, `country`                   |
+| `Review`          | `summary`                                             |
+| `EditorialNote`   | `body`                                                |
+| `Contract`        | `terms`, `rights_territory`                           |
+
+Reviews, notes, and contracts honour the manuscript-level filters
+(`status`, `genre`, `year`, `author_id`) via a join on `manuscripts`.
+The endpoint returns a grouped response:
+
+```json
+{
+  "query": "europe",
+  "total": 2,
+  "manuscripts": [...],
+  "authors": [...],
+  "reviews": [...],
+  "editorial_notes": [...],
+  "contracts": [...]
+}
+```
+
+Each hit denormalises the relevant attribution (`author_name`,
+`manuscript_title`, `reviewer_name`, `author_user_name`) so the UI
+needs no follow-up requests to render a useful row.
+
+The implementation uses plain `ILIKE` with indexed FK columns. For
+small-to-medium catalogues this is adequate. A future iteration could
+move to SQLite FTS5 (or PostgreSQL `tsvector`) without changing the
+endpoint contract.
+
+`Contract` gained an indexed `rights_territory` column to support the
+filter. Free-text (so a deployment can use `world`, `europe`,
+`north_america`, `spanish_language`, etc.) with a non-exhaustive
+datalist in the UI.
+
+### Search page
+
+`SearchPage` ships a single full-width form: a serif query input, then
+five filter controls (Status select, Genre input, Year, Author select,
+Rights territory text + datalist). Results render below as five
+labelled sections — Catalogue · Dossier · Marginalia · Apparatus ·
+Rights — each grouping hits per entity type. Empty sections display
+"Nothing turned up here." inline rather than collapsing.
+
+### Archive
+
+`ArchivePage` reads from `GET /api/manuscripts?status=archived&limit=200`
+and renders a library-card-style catalogue:
+
+```
+LF · 2024 · 8F3D1C37     The Salt Atlases               Archived · Jun 24
+                         A cartography of inland seas
+                         Essays · EN · 68,200 words
+```
+
+Each entry includes a small monospaced call number (`LF · <year> ·
+<id-prefix>`), title and subtitle in serif, mono metadata, and the
+archive date on the right. Clicking opens the manuscript detail page.
+
+### Read-only archive mode
+
+`ManuscriptView` checks `manuscript.status === 'archived'` and:
+
+- shows a hairline "Archive · read-only" banner above the header;
+- disables every `EditableField` (title, subtitle, synopsis, genre,
+  language, word count) by passing `canEdit={false}`;
+- disables the editorial-notes "Leave a note" form via the new
+  `readOnly` prop on `EditorialNotesPanel`;
+- relies on the workflow engine — `archived` is a terminal status,
+  so the `TransitionControl` naturally has no available actions.
+
+### Navigation
+
+`AppShell` exposes Manuscripts (=dashboard), **Search**, and
+**Archive** as live nav targets; Authors and Production remain
+placeholders. `AppShell` was reshaped from a single `onHome` callback
+to a generic `onNavigate(view)` callback so the four primary views
+can route uniformly.
+
+---
+
 ## API surface
 
 All endpoints live under `/api`, are documented at `/docs`, and return
@@ -558,7 +661,8 @@ All list endpoints additionally accept `skip` and `limit`.
 ## Status
 
 Schema, CRUD, authentication, the workflow engine, a full manuscript
-detail page, and an expanded dashboard are in place. Still to come:
-`User` management endpoints (CRUD, password rotation, invites), the
-remaining editorial views (authors index, contracts index, production
-board, archive), and actual file attachment plumbing.
+detail page, an expanded dashboard, cross-entity search with filters,
+and a dedicated read-only archive view are all in place. Still to
+come: `User` management endpoints (CRUD, password rotation, invites),
+the remaining editorial views (authors index, contracts index,
+production board), and actual file attachment plumbing.

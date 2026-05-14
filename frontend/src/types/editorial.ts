@@ -24,6 +24,7 @@ export interface Contract {
   advance_amount: string | null;
   royalty_rate: number | null;
   currency: string;
+  rights_territory: string | null;
   signed_at: string | null;
   terms: string | null;
 }
