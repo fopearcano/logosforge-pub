@@ -26,9 +26,9 @@ const TONE: Record<StreamStatus, { border: string; dot: string; text: string }> 
     text: 'text-accent',
   },
   blocked: {
-    border: 'border-red-400/30',
-    dot: 'bg-red-400/70',
-    text: 'text-red-300/80',
+    border: 'border-signal/30',
+    dot: 'bg-signal/70',
+    text: 'text-signal/80',
   },
   complete: {
     border: 'border-accent',

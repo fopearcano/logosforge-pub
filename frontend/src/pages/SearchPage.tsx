@@ -223,7 +223,7 @@ export function SearchPage({ onOpenManuscript }: SearchPageProps) {
 
         <div className="flex items-center justify-between gap-4">
           {error && (
-            <span className="font-mono text-[0.65rem] uppercase tracking-widest text-red-300">
+            <span className="font-mono text-[0.65rem] uppercase tracking-widest text-signal">
               {error}
             </span>
           )}

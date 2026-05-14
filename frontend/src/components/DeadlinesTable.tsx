@@ -13,7 +13,7 @@ interface DeadlinesTableProps {
 const STATUS_TONE: Record<ProductionItemStatus, string> = {
   pending: 'text-parchment-muted border-parchment-muted/40',
   in_progress: 'text-accent border-accent/60',
-  blocked: 'text-red-300/80 border-red-400/30',
+  blocked: 'text-signal/80 border-signal/30',
   done: 'text-parchment-dim border-rule',
 };
 

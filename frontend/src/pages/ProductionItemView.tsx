@@ -37,7 +37,7 @@ const PRODUCTION_ITEM_STATUSES: ProductionItemStatus[] = [
 const STATUS_TONE: Record<ProductionItemStatus, string> = {
   pending: 'text-parchment-muted border-parchment-muted/40',
   in_progress: 'text-accent border-accent/60',
-  blocked: 'text-red-300/80 border-red-400/30',
+  blocked: 'text-signal/80 border-signal/30',
   done: 'text-parchment-dim border-rule',
 };
 
@@ -117,7 +117,7 @@ export function ProductionItemView({
         >
           ← Back
         </button>
-        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
+        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-signal">
           {error}
         </p>
       </div>

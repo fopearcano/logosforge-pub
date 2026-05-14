@@ -39,9 +39,9 @@ const TONE_CLASSES: Record<Tone, { border: string; dot: string; text: string }> 
     text: 'text-parchment-dim',
   },
   closed: {
-    border: 'border-red-400/30',
-    dot: 'bg-red-400/70',
-    text: 'text-red-300/80',
+    border: 'border-signal/30',
+    dot: 'bg-signal/70',
+    text: 'text-signal/80',
   },
 };
 

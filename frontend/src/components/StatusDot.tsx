@@ -8,7 +8,7 @@ interface StatusDotProps {
 const TONE: Record<Tone, string> = {
   ok: 'bg-accent',
   pending: 'bg-parchment-muted',
-  error: 'bg-red-400/80',
+  error: 'bg-signal/80',
 };
 
 export function StatusDot({ tone, label }: StatusDotProps) {

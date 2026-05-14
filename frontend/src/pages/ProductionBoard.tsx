@@ -58,7 +58,7 @@ export function ProductionBoard({ onOpenManuscript }: ProductionBoardProps) {
       </header>
 
       {error && (
-        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
+        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-signal">
           {error}
         </p>
       )}

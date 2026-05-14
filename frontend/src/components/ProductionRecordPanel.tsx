@@ -50,7 +50,7 @@ export function ProductionRecordPanel({
           No production record has been opened for this manuscript.
         </p>
         {error && (
-          <p className="mt-3 font-mono text-[0.62rem] uppercase tracking-widest text-red-300">
+          <p className="mt-3 font-mono text-[0.62rem] uppercase tracking-widest text-signal">
             {error}
           </p>
         )}
@@ -250,7 +250,7 @@ function StreamRow({ label, value, canEdit, onChange }: StreamRowProps) {
         </select>
       </div>
       {error && (
-        <span className="text-right font-mono text-[0.6rem] uppercase tracking-widest text-red-300">
+        <span className="text-right font-mono text-[0.6rem] uppercase tracking-widest text-signal">
           {error}
         </span>
       )}

@@ -13,7 +13,7 @@ const STATUS_TONE: Record<ContractStatus, string> = {
   draft: 'text-parchment-muted border-parchment-muted/40',
   sent: 'text-parchment-muted border-parchment-muted/40',
   signed: 'text-accent border-accent/60',
-  terminated: 'text-red-300/80 border-red-400/30',
+  terminated: 'text-signal/80 border-signal/30',
 };
 
 function formatDate(iso: string | null): string {

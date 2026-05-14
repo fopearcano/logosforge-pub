@@ -151,7 +151,7 @@ export function ManuscriptView({
         >
           ← Back to manuscripts
         </button>
-        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
+        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-signal">
           {error}
         </p>
       </div>

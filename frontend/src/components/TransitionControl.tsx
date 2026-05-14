@@ -56,7 +56,7 @@ export function TransitionControl({
   };
 
   return (
-    <div className="border border-rule p-8">
+    <div className="border border-rule p-6">
       <div className="flex items-baseline justify-between">
         <Eyebrow>Advance status</Eyebrow>
         <StatusBadge status={currentStatus} size="sm" />
@@ -102,7 +102,7 @@ export function TransitionControl({
           </label>
 
           {error && (
-            <p className="font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
+            <p className="font-mono text-[0.7rem] uppercase tracking-widest text-signal">
               {error}
             </p>
           )}

@@ -83,7 +83,7 @@ export function EditableField({
       <span className="text-parchment-dim">{emptyLabel}</span>
     );
     const interactive = canEdit
-      ? 'cursor-text border-b border-dotted border-transparent transition-colors hover:border-rule focus:border-rule'
+      ? 'cursor-text border-b border-transparent transition-colors hover:border-parchment-dim/30 focus:border-parchment-dim/50'
       : '';
 
     return (
@@ -126,7 +126,7 @@ export function EditableField({
       <div className="flex items-center justify-between gap-3">
         <span
           className={`font-mono text-[0.62rem] uppercase tracking-widest ${
-            error ? 'text-red-300' : 'text-parchment-dim'
+            error ? 'text-signal' : 'text-parchment-dim'
           }`}
         >
           {error ?? (type === 'multiline' ? 'Esc to cancel' : 'Enter to save · Esc to cancel')}

@@ -12,7 +12,7 @@ interface ReviewsListProps {
 const VERDICT_TONE: Record<ReviewVerdict, string> = {
   accept: 'text-accent border-accent/60',
   revise: 'text-parchment-muted border-parchment-muted/40',
-  reject: 'text-red-300/80 border-red-400/30',
+  reject: 'text-signal/80 border-signal/30',
 };
 
 function formatRating(rating: number | null): string {

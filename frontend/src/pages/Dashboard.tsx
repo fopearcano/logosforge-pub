@@ -140,7 +140,7 @@ export function Dashboard({ onOpenManuscript }: DashboardProps) {
       </section>
 
       {error && (
-        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
+        <p className="font-mono text-[0.7rem] uppercase tracking-widest text-signal">
           {error}
         </p>
       )}

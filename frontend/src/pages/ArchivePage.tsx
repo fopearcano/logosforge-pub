@@ -69,7 +69,7 @@ export function ArchivePage({ onOpenManuscript }: ArchivePageProps) {
         </div>
 
         {error && (
-          <p className="py-10 font-mono text-[0.7rem] uppercase tracking-widest text-red-300">
+          <p className="py-10 font-mono text-[0.7rem] uppercase tracking-widest text-signal">
             {error}
           </p>
         )}

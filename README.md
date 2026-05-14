@@ -136,11 +136,63 @@ npm run preview    # serve the built bundle locally
 
 ## Design language
 
-- Minimal. Professional. Editorial. Archival.
-- Dark surfaces (`ink-800`) with parchment-toned type.
-- Serif display (EB Garamond / Cormorant), monospace for metadata,
-  sans-serif for body.
-- No SaaS gradients, no startup ornament.
+The register is **literary, archival, slightly monastic** — closer to a
+print broadsheet than a SaaS dashboard.
+
+### Palette
+
+The Tailwind theme is restricted to a small, deliberately drab set:
+
+| Token            | Use                                                   |
+| ---------------- | ----------------------------------------------------- |
+| `ink-800`        | Page background                                       |
+| `ink-700` / `650`| Elevated surfaces (table-row hover, ledger cells)     |
+| `ink-900`        | Footer / deepest declaration                          |
+| `parchment`      | Body text                                             |
+| `parchment-muted`| Secondary copy                                        |
+| `parchment-dim`  | Eyebrow / mono labels                                 |
+| `rule`           | Hairline borders, table dividers, focus underlines    |
+| `accent`         | Antique brass — used only for active state and focus  |
+| `accent.soft`    | Selection and accent hover-fill                       |
+| `signal`         | Muted oxblood for overdue, blocked, reject, errors    |
+
+No bright blues or greens. No gradients. The only colour intensity is
+`accent` (warm brass) and `signal` (dusty oxblood); both are pulled
+toward parchment so they never feel like alerts on a SaaS console.
+
+### Typography
+
+- Serif display: EB Garamond / Cormorant Garamond, with old-style
+  numerals (`onum`), ligatures, and tight (-0.012em) tracking on
+  headings.
+- Monospace: JetBrains Mono / IBM Plex Mono, used for eyebrows,
+  metadata, table column heads, status pills, and call numbers.
+- Sans-serif: Inter, reserved for the chrome (header, footer, nav).
+- Long-form prose uses the `.editorial-prose` utility: 1.7 leading,
+  serif, parchment at 90% — a chronicle cadence rather than a UI one.
+- A small set of reusable utilities (`.label-eyebrow`,
+  `.editorial-rule`, `.nav-link`, `.nav-link-active`, `.field-input`,
+  `.field-select`, `.field-mono`, `.button-quiet`, `.button-accent`,
+  `.row-clickable`) keeps the surface consistent across pages.
+
+### Rules and ornament
+
+- Hairline rules everywhere. No box shadows, no rounded corners on
+  primary surfaces (status pills are the only square-cornered chips
+  in the system).
+- Active navigation links are marked by a 1px brass underline below
+  the label, not by a fill.
+- Long lists are separated by horizontal rules rather than cards.
+- Focus state is a single accent border-bottom on form fields; no
+  browser glow.
+
+### Avoided
+
+- Bright startup primaries, gradients, neon accents.
+- Playful icons, illustrations, mascots.
+- Drop shadows, glassmorphism, gradients-on-borders.
+- Over-saturation. The only deviation is the `accent` brass, kept to
+  a single highlight per surface.
 
 ---
 

@@ -17,19 +17,48 @@
     font-family: theme('fontFamily.sans');
     background-color: theme('colors.ink.800');
     color: theme('colors.parchment.DEFAULT');
-    font-feature-settings: 'ss01', 'cv11';
+    font-feature-settings: 'ss01', 'cv11', 'liga', 'kern';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   h1,
   h2,
-  h3 {
+  h3,
+  h4 {
     font-family: theme('fontFamily.serif');
-    letter-spacing: -0.01em;
+    letter-spacing: -0.012em;
+    font-feature-settings: 'liga', 'kern', 'onum';
+  }
+
+  /* Serif paragraphs lean into a literary cadence. */
+  p,
+  blockquote {
+    font-feature-settings: 'kern', 'liga';
   }
 
   ::selection {
     background: theme('colors.accent.soft');
     color: theme('colors.ink.900');
+  }
+
+  /* A single hairline focus ring across native form fields. No glow. */
+  :where(input, select, textarea):focus-visible {
+    outline: none;
+  }
+
+  /* Native text inputs use a thin accent rule rather than the browser's
+     blue ring — fits the print register. */
+  input[type='text'],
+  input[type='number'],
+  input[type='date'],
+  input[type='email'],
+  input[type='password'],
+  input[type='search'],
+  textarea,
+  select {
+    accent-color: theme('colors.accent.DEFAULT');
   }
 }
 
@@ -39,6 +68,56 @@
   }
 
   .label-eyebrow {
-    @apply font-mono text-[0.68rem] uppercase tracking-widest text-parchment-dim;
+    @apply font-mono text-[0.66rem] uppercase tracking-widest text-parchment-dim;
+  }
+
+  /* Long-form prose: a slightly more generous leading and serif kerning
+     for synopsis blocks, review summaries, editorial notes. */
+  .editorial-prose {
+    @apply font-serif text-[1rem] leading-[1.7] text-parchment/90;
+  }
+
+  /* Unified form controls. Used by inputs, selects, and textareas across
+     filters, panels, and inline editors. */
+  .field-input {
+    @apply border border-rule bg-ink-700 px-3 py-1.5 text-parchment
+           placeholder:text-parchment-dim/60
+           focus:border-accent focus:outline-none;
+  }
+  .field-select {
+    @apply field-input pr-8;
+  }
+  .field-mono {
+    @apply field-input font-mono text-[0.78rem] uppercase tracking-wider;
+  }
+
+  /* Compact, restrained button used in form footers. */
+  .button-quiet {
+    @apply font-mono text-[0.62rem] uppercase tracking-widest
+           text-parchment-dim transition-colors hover:text-parchment-muted;
+  }
+  .button-accent {
+    @apply border border-accent px-3 py-1 font-mono text-[0.62rem]
+           uppercase tracking-widest text-accent transition-colors
+           hover:bg-accent hover:text-ink-900
+           disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  /* Navigation links in the header. */
+  .nav-link {
+    @apply relative font-mono text-[0.72rem] uppercase tracking-widest
+           text-parchment-dim transition-colors hover:text-parchment-muted;
+  }
+  .nav-link-active {
+    @apply text-parchment;
+  }
+  .nav-link-active::after {
+    content: '';
+    @apply absolute left-0 right-0 -bottom-2 h-px bg-accent/80;
+  }
+
+  /* A subtle hover treatment for clickable table rows. */
+  .row-clickable {
+    @apply transition-colors hover:bg-ink-700/40;
   }
 }

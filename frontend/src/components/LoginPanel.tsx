@@ -93,7 +93,7 @@ export function LoginPanel() {
         />
       </label>
       {error && (
-        <p className="font-mono text-[0.68rem] uppercase tracking-widest text-red-400/80">
+        <p className="font-mono text-[0.68rem] uppercase tracking-widest text-signal/80">
           {error}
         </p>
       )}

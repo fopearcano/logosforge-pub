@@ -222,7 +222,7 @@ export function AttachmentsPanel({
           </label>
 
           {error && (
-            <span className="font-mono text-[0.62rem] uppercase tracking-widest text-red-300">
+            <span className="font-mono text-[0.62rem] uppercase tracking-widest text-signal">
               {error}
             </span>
           )}

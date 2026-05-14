@@ -13,6 +13,7 @@ export default {
           400: '#3d3b36',
           500: '#26241f',
           600: '#1c1a16',
+          650: '#181612', // a quiet half-step of elevation
           700: '#141310',
           800: '#0d0c0a',
           900: '#070605',
@@ -20,13 +21,23 @@ export default {
         parchment: {
           DEFAULT: '#e8e3d3',
           muted: '#b8b2a2',
-          dim: '#6e6a5e',
+          dim: '#7a7466',
+          shadow: '#56524a',
         },
         accent: {
-          DEFAULT: '#b8915a',
-          soft: '#8a6c43',
+          DEFAULT: '#b08456', // warmed brass; pulled slightly from the buttery side
+          soft: '#82643f',
+          deep: '#5a4632',
         },
-        rule: '#2a2823',
+        rule: '#272520',
+        // Muted oxblood — used wherever the editorial register signals
+        // trouble (overdue, blocked, reject, errors). Replaces all
+        // generic `red-*` references so the palette stays archival.
+        signal: {
+          DEFAULT: '#a8736a',
+          soft: '#825048',
+          dim: '#5e423e',
+        },
       },
       fontFamily: {
         serif: ['"EB Garamond"', '"Cormorant Garamond"', 'Georgia', 'serif'],
@@ -39,6 +50,7 @@ export default {
       },
       maxWidth: {
         editorial: '78rem',
+        chronicle: '34rem', // a book-page width for long-form prose
       },
     },
   },
