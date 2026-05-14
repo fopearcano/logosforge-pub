@@ -16,6 +16,7 @@ class User(BaseEntity, table=True):
     __tablename__ = "users"
 
     email: str = Field(max_length=255, index=True, unique=True)
+    hashed_password: str = Field(max_length=255)
     full_name: str = Field(max_length=200)
     role: UserRole = Field(default=UserRole.EDITOR, index=True)
     is_active: bool = Field(default=True)

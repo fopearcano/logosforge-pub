@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app.auth.security import hash_password
 from app.models import Author, Manuscript, User
 from app.models.enums import UserRole, WorkflowStatus
 
@@ -142,6 +143,7 @@ def test_review_workflow_full_chain(
         email="reviewer@logosforge.test",
         full_name="Test Reviewer",
         role=UserRole.EDITOR,
+        hashed_password=hash_password("password"),
     )
     session.add(reviewer)
     session.commit()
@@ -236,7 +238,10 @@ def test_production_item_create_and_update(
     client: TestClient, session: Session
 ) -> None:
     designer = User(
-        email="designer@logosforge.test", full_name="Designer", role=UserRole.DESIGNER
+        email="designer@logosforge.test",
+        full_name="Designer",
+        role=UserRole.PRODUCTION_MANAGER,
+        hashed_password=hash_password("password"),
     )
     session.add(designer)
     session.commit()
@@ -265,7 +270,10 @@ def test_production_item_create_and_update(
 
 def test_editorial_note_lifecycle(client: TestClient, session: Session) -> None:
     user = User(
-        email="copy@logosforge.test", full_name="Copy", role=UserRole.COPY_EDITOR
+        email="copy@logosforge.test",
+        full_name="Copy",
+        role=UserRole.EDITOR,
+        hashed_password=hash_password("password"),
     )
     session.add(user)
     session.commit()

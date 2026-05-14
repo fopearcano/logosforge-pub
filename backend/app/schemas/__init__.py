@@ -1,5 +1,6 @@
 """Pydantic schemas used for request/response payloads."""
 
+from app.schemas.auth import CurrentUserRead, TokenResponse
 from app.schemas.author import AuthorCreate, AuthorRead, AuthorUpdate
 from app.schemas.contract import ContractCreate, ContractRead, ContractUpdate
 from app.schemas.editorial_note import (
@@ -24,6 +25,8 @@ __all__ = [
     "AuthorCreate",
     "AuthorRead",
     "AuthorUpdate",
+    "CurrentUserRead",
+    "TokenResponse",
     "ContractCreate",
     "ContractRead",
     "ContractUpdate",

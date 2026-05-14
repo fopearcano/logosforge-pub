@@ -13,6 +13,7 @@ from decimal import Decimal
 
 from sqlmodel import Session, select
 
+from app.auth.security import hash_password
 from app.db import engine, init_db
 from app.models import (
     Author,
@@ -33,43 +34,46 @@ from app.models import (
 )
 from app.models.base import utcnow
 
+# A single demo password keyed for every seeded user; documented in the README.
+DEMO_PASSWORD = "logosforge"
+
+
+def _user(email: str, full_name: str, role: UserRole) -> User:
+    return User(
+        email=email,
+        full_name=full_name,
+        role=role,
+        hashed_password=hash_password(DEMO_PASSWORD),
+    )
+
 
 def _seed_users(session: Session) -> dict[str, User]:
     users = {
-        "helena": User(
-            email="helena.pryce@logosforge.local",
-            full_name="Helena Pryce",
-            role=UserRole.ADMIN,
+        # Editorial leadership and editors.
+        "helena": _user("helena.pryce@logosforge.local", "Helena Pryce", UserRole.ADMIN),
+        "jonas": _user("jonas.marten@logosforge.local", "Jonas Mårten", UserRole.EDITOR),
+        "cecilia": _user("cecilia.dore@logosforge.local", "Cecilia Doré", UserRole.EDITOR),
+        "tomas": _user("tomas.aribau@logosforge.local", "Tomás Aribau", UserRole.EDITOR),
+        "ruth": _user("ruth.engstrom@logosforge.local", "Ruth Engström", UserRole.EDITOR),
+        # External / structural reviewer.
+        "bartholomew": _user(
+            "bartholomew.krause@logosforge.local",
+            "Bartholomew Krause",
+            UserRole.REVIEWER,
         ),
-        "jonas": User(
-            email="jonas.marten@logosforge.local",
-            full_name="Jonas Mårten",
-            role=UserRole.EDITOR,
+        # Production.
+        "kazu": _user(
+            "kazu.fujita@logosforge.local", "Kazu Fujita", UserRole.PRODUCTION_MANAGER
         ),
-        "cecilia": User(
-            email="cecilia.dore@logosforge.local",
-            full_name="Cecilia Doré",
-            role=UserRole.EDITOR,
+        "ines": _user(
+            "ines.harlan@logosforge.local", "Inés Harlan", UserRole.PRODUCTION_MANAGER
         ),
-        "tomas": User(
-            email="tomas.aribau@logosforge.local",
-            full_name="Tomás Aribau",
-            role=UserRole.COPY_EDITOR,
+        # Marketing and archive.
+        "mireille": _user(
+            "mireille.vance@logosforge.local", "Mireille Vance", UserRole.MARKETING
         ),
-        "ruth": User(
-            email="ruth.engstrom@logosforge.local",
-            full_name="Ruth Engström",
-            role=UserRole.PROOFREADER,
-        ),
-        "kazu": User(
-            email="kazu.fujita@logosforge.local",
-            full_name="Kazu Fujita",
-            role=UserRole.DESIGNER,
-        ),
-        "ines": User(
-            email="ines.harlan@logosforge.local",
-            full_name="Inés Harlan",
-            role=UserRole.PRODUCTION_MANAGER,
+        "olesya": _user(
+            "olesya.kestral@logosforge.local", "Olesya Kestral", UserRole.ARCHIVE_READER
         ),
     }
     session.add_all(users.values())
@@ -450,8 +454,8 @@ def run() -> None:
 
     print(
         "Seeded LOGOSFORGE: "
-        f"{len(users)} users, {len(authors)} authors, "
-        f"{len(manuscripts)} manuscripts, "
+        f"{len(users)} users (password '{DEMO_PASSWORD}' for all), "
+        f"{len(authors)} authors, {len(manuscripts)} manuscripts, "
         "with reviews, workflow events, contracts, production items and notes."
     )
 

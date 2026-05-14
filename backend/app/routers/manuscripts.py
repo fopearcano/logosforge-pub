@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select
 
+from app.auth import ADMIN_ONLY, AUTHED
 from app.db import get_session
 from app.models import Author, Manuscript
 from app.models.enums import WorkflowStatus
@@ -57,7 +58,12 @@ def get_manuscript(
     return get_or_404(session, Manuscript, manuscript_id, name="Manuscript")
 
 
-@router.post("", response_model=ManuscriptRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ManuscriptRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=AUTHED,
+)
 def create_manuscript(
     payload: ManuscriptCreate, session: Session = Depends(get_session)
 ) -> Manuscript:
@@ -69,7 +75,7 @@ def create_manuscript(
     return manuscript
 
 
-@router.patch("/{manuscript_id}", response_model=ManuscriptRead)
+@router.patch("/{manuscript_id}", response_model=ManuscriptRead, dependencies=AUTHED)
 def update_manuscript(
     manuscript_id: str,
     payload: ManuscriptUpdate,
@@ -83,7 +89,11 @@ def update_manuscript(
     return manuscript
 
 
-@router.delete("/{manuscript_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{manuscript_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=ADMIN_ONLY,
+)
 def delete_manuscript(
     manuscript_id: str, session: Session = Depends(get_session)
 ):

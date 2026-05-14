@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select
 
+from app.auth import ADMIN_ONLY, AUTHED
 from app.db import get_session
 from app.models import Author, Contract, Manuscript
 from app.models.enums import ContractStatus
@@ -53,7 +54,12 @@ def get_contract(contract_id: str, session: Session = Depends(get_session)) -> C
     return get_or_404(session, Contract, contract_id, name="Contract")
 
 
-@router.post("", response_model=ContractRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ContractRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=AUTHED,
+)
 def create_contract(
     payload: ContractCreate, session: Session = Depends(get_session)
 ) -> Contract:
@@ -66,7 +72,7 @@ def create_contract(
     return contract
 
 
-@router.patch("/{contract_id}", response_model=ContractRead)
+@router.patch("/{contract_id}", response_model=ContractRead, dependencies=AUTHED)
 def update_contract(
     contract_id: str,
     payload: ContractUpdate,
@@ -80,7 +86,11 @@ def update_contract(
     return contract
 
 
-@router.delete("/{contract_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{contract_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=ADMIN_ONLY,
+)
 def delete_contract(contract_id: str, session: Session = Depends(get_session)):
     contract = get_or_404(session, Contract, contract_id, name="Contract")
     session.delete(contract)

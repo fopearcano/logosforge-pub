@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from sqlmodel import Session, select
 
+from app.auth.security import hash_password
 from app.models import (
     Author,
     Contract,
@@ -29,6 +30,7 @@ def _seed_minimal(session: Session) -> tuple[User, Author, Manuscript]:
         email="editor@logosforge.test",
         full_name="Test Editor",
         role=UserRole.EDITOR,
+        hashed_password=hash_password("password"),
     )
     author = Author(full_name="Test Author", country="Nowhere")
     session.add_all([editor, author])
@@ -49,7 +51,9 @@ def _seed_minimal(session: Session) -> tuple[User, Author, Manuscript]:
 
 
 def test_base_entity_timestamps_and_id(session: Session) -> None:
-    user = User(email="x@y.z", full_name="X")
+    user = User(
+        email="x@y.z", full_name="X", hashed_password=hash_password("password")
+    )
     session.add(user)
     session.commit()
     session.refresh(user)
@@ -167,8 +171,9 @@ def test_user_email_unique(session: Session) -> None:
     import pytest
     from sqlalchemy.exc import IntegrityError
 
-    session.add(User(email="dup@logosforge.test", full_name="A"))
+    hp = hash_password("password")
+    session.add(User(email="dup@logosforge.test", full_name="A", hashed_password=hp))
     session.commit()
-    session.add(User(email="dup@logosforge.test", full_name="B"))
+    session.add(User(email="dup@logosforge.test", full_name="B", hashed_password=hp))
     with pytest.raises(IntegrityError):
         session.commit()

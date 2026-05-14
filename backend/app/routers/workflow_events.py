@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select
 
+from app.auth import ADMIN_ONLY, AUTHED
 from app.db import get_session
 from app.models import Manuscript, User, WorkflowEvent
 from app.schemas import WorkflowEventCreate, WorkflowEventRead, WorkflowEventUpdate
@@ -48,7 +49,12 @@ def get_workflow_event(
     return get_or_404(session, WorkflowEvent, event_id, name="WorkflowEvent")
 
 
-@router.post("", response_model=WorkflowEventRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=WorkflowEventRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=AUTHED,
+)
 def create_workflow_event(
     payload: WorkflowEventCreate, session: Session = Depends(get_session)
 ) -> WorkflowEvent:
@@ -62,7 +68,7 @@ def create_workflow_event(
     return event
 
 
-@router.patch("/{event_id}", response_model=WorkflowEventRead)
+@router.patch("/{event_id}", response_model=WorkflowEventRead, dependencies=AUTHED)
 def update_workflow_event(
     event_id: str,
     payload: WorkflowEventUpdate,
@@ -76,7 +82,11 @@ def update_workflow_event(
     return event
 
 
-@router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{event_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=ADMIN_ONLY,
+)
 def delete_workflow_event(
     event_id: str, session: Session = Depends(get_session)
 ):

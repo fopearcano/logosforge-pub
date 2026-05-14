@@ -4,12 +4,12 @@ from enum import Enum
 
 
 class UserRole(str, Enum):
-    EDITOR = "editor"
-    COPY_EDITOR = "copy_editor"
-    PROOFREADER = "proofreader"
-    DESIGNER = "designer"
-    PRODUCTION_MANAGER = "production_manager"
     ADMIN = "admin"
+    EDITOR = "editor"
+    REVIEWER = "reviewer"
+    PRODUCTION_MANAGER = "production_manager"
+    MARKETING = "marketing"
+    ARCHIVE_READER = "archive_reader"
 
 
 class WorkflowStatus(str, Enum):

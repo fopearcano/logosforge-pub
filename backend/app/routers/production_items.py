@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select
 
+from app.auth import ADMIN_ONLY, AUTHED
 from app.db import get_session
 from app.models import Manuscript, ProductionItem, User
 from app.models.enums import ProductionItemStatus, ProductionStage
@@ -58,7 +59,12 @@ def get_production_item(
     return get_or_404(session, ProductionItem, item_id, name="ProductionItem")
 
 
-@router.post("", response_model=ProductionItemRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ProductionItemRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=AUTHED,
+)
 def create_production_item(
     payload: ProductionItemCreate, session: Session = Depends(get_session)
 ) -> ProductionItem:
@@ -72,7 +78,7 @@ def create_production_item(
     return item
 
 
-@router.patch("/{item_id}", response_model=ProductionItemRead)
+@router.patch("/{item_id}", response_model=ProductionItemRead, dependencies=AUTHED)
 def update_production_item(
     item_id: str,
     payload: ProductionItemUpdate,
@@ -88,7 +94,11 @@ def update_production_item(
     return item
 
 
-@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=ADMIN_ONLY,
+)
 def delete_production_item(
     item_id: str, session: Session = Depends(get_session)
 ):

@@ -6,8 +6,9 @@ ledger of a press — manuscripts, authors, contracts, and production —
 under a single, refined surface.
 
 This repository contains the foundation, the editorial domain schema,
-and a full CRUD HTTP API. UI for the domain entities will follow in
-successive editions.
+a full CRUD HTTP API, and JWT-based authentication with role-based
+access control. UI for the domain entities will follow in successive
+editions.
 
 ---
 
@@ -27,12 +28,13 @@ backend/
     db.py          Engine, session, init_db
     config.py      Settings (env-driven)
     seed.py        Schema initialisation + sample data
+    auth/          Password hashing, JWT, DI dependencies
     models/        SQLModel domain entities + enums
-    routers/       HTTP routers (health, meta, …)
+    routers/       HTTP routers (auth, health, meta, …)
     services/      Business logic
     schemas/       Request/response payloads
     utils/         Cross-cutting helpers
-  tests/           Pytest suite (model + relationship checks)
+  tests/           Pytest suite (model + router + auth)
 
 frontend/
   src/
@@ -148,7 +150,7 @@ SQLite (or PostgreSQL) by `init_db()`.
 
 | Entity            | Purpose                                                                                  |
 | ----------------- | ---------------------------------------------------------------------------------------- |
-| `User`            | Staff account (editor, copy editor, proofreader, designer, production manager, admin).   |
+| `User`            | Staff account with a role (see [Authentication](#authentication)).                       |
 | `Author`          | External contributor; distinct from staff `User`.                                        |
 | `Manuscript`      | The work itself, carrying a current workflow status and metadata.                        |
 | `Review`          | A reader's verdict on a manuscript (`accept` / `reject` / `revise`) with optional rating.|
@@ -192,6 +194,102 @@ PostgreSQL forward-compatibility.
 
 `UserRole`, `ReviewVerdict`, `ContractStatus`, `ProductionStage`,
 `ProductionItemStatus`, `EditorialNoteKind`.
+
+---
+
+## Authentication
+
+LOGOSFORGE uses JWT bearer tokens, OAuth2 password flow, and a
+role-based access dependency chain.
+
+### Roles
+
+| Role                 | Notes                                                          |
+| -------------------- | -------------------------------------------------------------- |
+| `admin`              | Full access, including all destructive endpoints.              |
+| `editor`             | Editorial reads and writes; cannot delete.                     |
+| `reviewer`           | Submits reviews; otherwise read-only on the editorial graph.   |
+| `production_manager` | Drives `ProductionItem` and post-acceptance workflow.          |
+| `marketing`          | Read-only access geared toward catalogue/promotion data.       |
+| `archive_reader`     | Read-only access intended for the archive view.                |
+
+The role set lives in `app.models.enums.UserRole` and is exposed on every
+token issued by `/api/auth/login`.
+
+### Access policy
+
+| Verb                    | Requirement                                  |
+| ----------------------- | -------------------------------------------- |
+| `GET /api/...`          | Public (anonymous reads).                    |
+| `POST` and `PATCH /api/...` | Any authenticated user.                  |
+| `DELETE /api/...`       | `admin` role only.                           |
+| `GET /api/auth/me`      | Any authenticated user.                      |
+
+Reusable dependency objects live in `app.auth`: `AUTHED` and `ADMIN_ONLY`
+are passed to FastAPI route decorators via `dependencies=...`. The
+factory `require_role(UserRole.X, UserRole.Y, ...)` builds custom
+guards for future endpoints.
+
+### Endpoints
+
+```
+POST /api/auth/login    OAuth2 password flow (form-encoded: username, password)
+GET  /api/auth/me       Returns the current authenticated user
+```
+
+`POST /api/auth/login` accepts standard form-encoded fields
+(`username`, `password`) — the `username` is the user's email — and
+returns:
+
+```json
+{
+  "access_token": "...",
+  "token_type": "bearer",
+  "expires_at": "2026-05-14T07:41:50+00:00",
+  "user": { "id": "...", "email": "...", "full_name": "...", "role": "admin", "is_active": true }
+}
+```
+
+Send the token on subsequent requests as `Authorization: Bearer <token>`.
+
+### Demo credentials
+
+After running `python -m app.seed`, every seeded user has the password
+`logosforge`. Use any of:
+
+| Email                                       | Role                 |
+| ------------------------------------------- | -------------------- |
+| `helena.pryce@logosforge.local`             | `admin`              |
+| `jonas.marten@logosforge.local`             | `editor`             |
+| `cecilia.dore@logosforge.local`             | `editor`             |
+| `tomas.aribau@logosforge.local`             | `editor`             |
+| `ruth.engstrom@logosforge.local`            | `editor`             |
+| `bartholomew.krause@logosforge.local`       | `reviewer`           |
+| `kazu.fujita@logosforge.local`              | `production_manager` |
+| `ines.harlan@logosforge.local`              | `production_manager` |
+| `mireille.vance@logosforge.local`           | `marketing`          |
+| `olesya.kestral@logosforge.local`           | `archive_reader`     |
+
+Example login:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/auth/login \
+  -d 'username=helena.pryce@logosforge.local&password=logosforge'
+```
+
+### Configuration
+
+Set the following in `backend/.env` for any non-development deployment:
+
+```env
+SECRET_KEY=<long-random-secret>
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+```
+
+The shipped dev default is obviously insecure and is intentionally
+visible in the codebase. Authentication is a foundation only — no
+refresh tokens, no rate limiting, no password rotation, no audit log.
 
 ---
 
@@ -250,6 +348,8 @@ All list endpoints additionally accept `skip` and `limit`.
 
 | Status | Meaning                                                       |
 | ------ | ------------------------------------------------------------- |
+| `401`  | Missing, invalid, or expired bearer token.                    |
+| `403`  | Authenticated, but the role is not permitted.                 |
 | `404`  | Entity not found, including missing FK references on `POST`.  |
 | `409`  | Database constraint violation (uniqueness, FK race).          |
 | `422`  | Request payload failed validation.                            |
@@ -258,6 +358,7 @@ All list endpoints additionally accept `skip` and `limit`.
 
 ## Status
 
-Schema complete, CRUD complete. Routes for `User` management and
-authentication, plus the UI for the editorial entities, will be added
-in subsequent editions.
+Schema complete, CRUD complete, authentication and RBAC scaffolding in
+place. `User` management endpoints (CRUD, password rotation, invites)
+and the UI for the editorial entities will follow in subsequent
+editions.

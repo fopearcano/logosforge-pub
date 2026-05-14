@@ -32,6 +32,12 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    # Authentication — development defaults. Override via environment in
+    # any non-development deployment.
+    secret_key: str = "logosforge-dev-secret-change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+
 
 @lru_cache
 def get_settings() -> Settings:

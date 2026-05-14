@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select
 
+from app.auth import ADMIN_ONLY, AUTHED
 from app.db import get_session
 from app.models import Manuscript, Review, User
 from app.schemas import ReviewCreate, ReviewRead, ReviewUpdate
@@ -49,7 +50,12 @@ def get_review(review_id: str, session: Session = Depends(get_session)) -> Revie
     return get_or_404(session, Review, review_id, name="Review")
 
 
-@router.post("", response_model=ReviewRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ReviewRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=AUTHED,
+)
 def create_review(
     payload: ReviewCreate, session: Session = Depends(get_session)
 ) -> Review:
@@ -62,7 +68,7 @@ def create_review(
     return review
 
 
-@router.patch("/{review_id}", response_model=ReviewRead)
+@router.patch("/{review_id}", response_model=ReviewRead, dependencies=AUTHED)
 def update_review(
     review_id: str,
     payload: ReviewUpdate,
@@ -76,7 +82,11 @@ def update_review(
     return review
 
 
-@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{review_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=ADMIN_ONLY,
+)
 def delete_review(review_id: str, session: Session = Depends(get_session)):
     review = get_or_404(session, Review, review_id, name="Review")
     session.delete(review)

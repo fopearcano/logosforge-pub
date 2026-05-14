@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session, select
 
+from app.auth import ADMIN_ONLY, AUTHED
 from app.db import get_session
 from app.models import EditorialNote, Manuscript, User
 from app.models.enums import EditorialNoteKind
@@ -58,7 +59,12 @@ def get_editorial_note(
     return get_or_404(session, EditorialNote, note_id, name="EditorialNote")
 
 
-@router.post("", response_model=EditorialNoteRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=EditorialNoteRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=AUTHED,
+)
 def create_editorial_note(
     payload: EditorialNoteCreate, session: Session = Depends(get_session)
 ) -> EditorialNote:
@@ -71,7 +77,7 @@ def create_editorial_note(
     return note
 
 
-@router.patch("/{note_id}", response_model=EditorialNoteRead)
+@router.patch("/{note_id}", response_model=EditorialNoteRead, dependencies=AUTHED)
 def update_editorial_note(
     note_id: str,
     payload: EditorialNoteUpdate,
@@ -85,7 +91,11 @@ def update_editorial_note(
     return note
 
 
-@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{note_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=ADMIN_ONLY,
+)
 def delete_editorial_note(
     note_id: str, session: Session = Depends(get_session)
 ):
