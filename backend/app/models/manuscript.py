@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from app.models.author import Author
     from app.models.contract import Contract
     from app.models.editorial_note import EditorialNote
+    from app.models.manuscript_entity_link import ManuscriptEntityLink
     from app.models.production_item import ProductionItem
     from app.models.production_record import ProductionRecord
     from app.models.review import Review
@@ -42,3 +43,6 @@ class Manuscript(BaseEntity, table=True):
     )
     attachments: list["Attachment"] = Relationship(back_populates="manuscript")
     ai_insights: list["AIInsight"] = Relationship(back_populates="manuscript")
+    entity_links: list["ManuscriptEntityLink"] = Relationship(
+        back_populates="manuscript"
+    )

@@ -21,11 +21,17 @@ from app.models import (
     ContractStatus,
     EditorialNote,
     EditorialNoteKind,
+    EntityKind,
+    KnowledgeEntity,
+    KnowledgeRelationship,
     Manuscript,
+    ManuscriptEntityLink,
+    ManuscriptLinkRole,
     ProductionItem,
     ProductionItemStatus,
     ProductionRecord,
     ProductionStage,
+    RelationshipKind,
     Review,
     ReviewVerdict,
     StreamStatus,
@@ -34,6 +40,7 @@ from app.models import (
     WorkflowEvent,
     WorkflowStatus,
 )
+from app.services.knowledge import slugify
 from app.models.base import utcnow
 
 # A single demo password keyed for every seeded user; documented in the README.
@@ -490,6 +497,143 @@ def _seed_production_records(
     session.commit()
 
 
+def _entity(
+    name: str, kind: EntityKind, description: str | None = None
+) -> KnowledgeEntity:
+    return KnowledgeEntity(
+        name=name,
+        slug=slugify(name),
+        kind=kind,
+        description=description,
+    )
+
+
+def _seed_knowledge_graph(
+    session: Session, manuscripts: dict[str, Manuscript]
+) -> None:
+    """A small but coherent starter graph for the demo manuscripts."""
+
+    entities = {
+        "inland_seas": _entity(
+            "Inland seas", EntityKind.THEME,
+            "A recurring concern with closed, brackish bodies of water.",
+        ),
+        "memory": _entity(
+            "Memory", EntityKind.THEME, "Personal and inherited remembrance."
+        ),
+        "labour": _entity(
+            "Labour", EntityKind.THEME, "Daily work and the hands that do it."
+        ),
+        "letters": _entity("Letters", EntityKind.THEME, "Correspondence as form."),
+        "archive": _entity(
+            "Archive", EntityKind.THEME,
+            "The collected paper trace of a life or institution.",
+        ),
+        "salt": _entity("Salt", EntityKind.MOTIF, "Saline as substance and image."),
+        "type_design": _entity(
+            "Type design", EntityKind.MOTIF, "The making and shaping of letterforms."
+        ),
+        "iberian_peninsula": _entity(
+            "Iberian peninsula", EntityKind.PLACE,
+            "Setting for several inland-sea essays.",
+        ),
+        "kyoto": _entity(
+            "Kyoto", EntityKind.PLACE, "Capital and craft city of late-19th-century Japan."
+        ),
+        "early_twentieth_century": _entity(
+            "Early twentieth century", EntityKind.PERIOD,
+            "Pre-war provincial Europe, roughly 1900–1930.",
+        ),
+        "buffon": _entity(
+            "Georges-Louis Leclerc de Buffon", EntityKind.PERSON,
+            "Eighteenth-century French naturalist whose Histoire Naturelle "
+            "shapes the natural-philosophy tradition.",
+        ),
+    }
+    session.add_all(entities.values())
+    session.commit()
+    for e in entities.values():
+        session.refresh(e)
+
+    # A handful of typed edges between entities.
+    relationships = [
+        KnowledgeRelationship(
+            source_id=entities["inland_seas"].id,
+            target_id=entities["salt"].id,
+            kind=RelationshipKind.RELATED_TO,
+            weight=0.9,
+        ),
+        KnowledgeRelationship(
+            source_id=entities["letters"].id,
+            target_id=entities["memory"].id,
+            kind=RelationshipKind.RELATED_TO,
+            weight=0.7,
+        ),
+        KnowledgeRelationship(
+            source_id=entities["archive"].id,
+            target_id=entities["memory"].id,
+            kind=RelationshipKind.RELATED_TO,
+            weight=0.8,
+        ),
+        KnowledgeRelationship(
+            source_id=entities["type_design"].id,
+            target_id=entities["labour"].id,
+            kind=RelationshipKind.RELATED_TO,
+            weight=0.6,
+        ),
+        KnowledgeRelationship(
+            source_id=entities["buffon"].id,
+            target_id=entities["archive"].id,
+            kind=RelationshipKind.INFLUENCES,
+            weight=0.5,
+            description="Buffon's classificatory impulse shapes the archive theme.",
+        ),
+    ]
+    session.add_all(relationships)
+    session.commit()
+
+    # Manuscript ↔ entity links.
+    links: list[ManuscriptEntityLink] = []
+
+    def link(ms_key: str, entity_key: str, role: ManuscriptLinkRole, relevance: float = 0.7):
+        links.append(
+            ManuscriptEntityLink(
+                manuscript_id=manuscripts[ms_key].id,
+                entity_id=entities[entity_key].id,
+                role=role,
+                relevance=relevance,
+            )
+        )
+
+    # The Salt Atlases — published essays on inland seas.
+    link("salt_atlases", "inland_seas", ManuscriptLinkRole.TAGGED, 0.95)
+    link("salt_atlases", "salt", ManuscriptLinkRole.TAGGED, 0.9)
+    link("salt_atlases", "archive", ManuscriptLinkRole.TAGGED, 0.7)
+    link("salt_atlases", "memory", ManuscriptLinkRole.TAGGED, 0.6)
+    link("salt_atlases", "iberian_peninsula", ManuscriptLinkRole.SET_IN, 0.9)
+
+    # Letters to a Dim Province — early-20th-century epistolary novel.
+    link("letters_dim", "letters", ManuscriptLinkRole.TAGGED, 0.95)
+    link("letters_dim", "memory", ManuscriptLinkRole.TAGGED, 0.8)
+    link("letters_dim", "early_twentieth_century", ManuscriptLinkRole.SET_IN, 0.85)
+
+    # Algebra of Birds — natural philosophy in the Buffon tradition.
+    link("algebra_birds", "buffon", ManuscriptLinkRole.REFERENCES, 0.9)
+    link("algebra_birds", "archive", ManuscriptLinkRole.TAGGED, 0.4)
+
+    # Quintus, the Foundry — Kyoto typefounder novel.
+    link("quintus", "type_design", ManuscriptLinkRole.TAGGED, 0.95)
+    link("quintus", "labour", ManuscriptLinkRole.TAGGED, 0.7)
+    link("quintus", "kyoto", ManuscriptLinkRole.SET_IN, 0.9)
+
+    # The Silent Workshop — printer / binder correspondence.
+    link("silent_workshop", "labour", ManuscriptLinkRole.TAGGED, 0.8)
+    link("silent_workshop", "letters", ManuscriptLinkRole.TAGGED, 0.85)
+
+    session.add_all(links)
+    session.commit()
+
+
 def run() -> None:
     init_db()
     with Session(engine) as session:
@@ -506,13 +650,14 @@ def run() -> None:
         _seed_production_items(session, manuscripts, users)
         _seed_editorial_notes(session, manuscripts, users)
         _seed_production_records(session, manuscripts)
+        _seed_knowledge_graph(session, manuscripts)
 
     print(
         "Seeded LOGOSFORGE: "
         f"{len(users)} users (password '{DEMO_PASSWORD}' for all), "
         f"{len(authors)} authors, {len(manuscripts)} manuscripts, "
         "with reviews, workflow events, contracts, production items, "
-        "production records, and notes."
+        "production records, notes, and a starter knowledge graph."
     )
 
 

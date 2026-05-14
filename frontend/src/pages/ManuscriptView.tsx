@@ -13,6 +13,7 @@ import { ReviewsList } from '@/components/ReviewsList';
 import { EditorialNotesPanel } from '@/components/EditorialNotesPanel';
 import { AttachmentsPanel } from '@/components/AttachmentsPanel';
 import { AIPanel } from '@/components/AIPanel';
+import { SemanticPanel } from '@/components/SemanticPanel';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useAuth } from '@/auth/AuthContext';
 import { ApiError } from '@/api/client';
@@ -296,6 +297,7 @@ export function ManuscriptView({
             items={productionItems}
             onOpenItem={onOpenProductionItem}
           />
+          <SemanticPanel manuscriptId={manuscript.id} readOnly={archived} />
           <AIPanel manuscriptId={manuscript.id} readOnly={archived} />
           <AttachmentsPanel manuscriptId={manuscript.id} readOnly={archived} />
         </aside>

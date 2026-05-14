@@ -14,15 +14,21 @@ from app.models.enums import (
     AttachmentKind,
     ContractStatus,
     EditorialNoteKind,
+    EntityKind,
     ExportFormat,
+    ManuscriptLinkRole,
     ProductionItemStatus,
     ProductionStage,
+    RelationshipKind,
     ReviewVerdict,
     StreamStatus,
     UserRole,
     WorkflowStatus,
 )
+from app.models.knowledge_entity import KnowledgeEntity
+from app.models.knowledge_relationship import KnowledgeRelationship
 from app.models.manuscript import Manuscript
+from app.models.manuscript_entity_link import ManuscriptEntityLink
 from app.models.production_item import ProductionItem
 from app.models.production_record import ProductionRecord
 from app.models.review import Review
@@ -35,6 +41,12 @@ __all__ = [
     "Attachment",
     "AttachmentKind",
     "Author",
+    "EntityKind",
+    "KnowledgeEntity",
+    "KnowledgeRelationship",
+    "ManuscriptEntityLink",
+    "ManuscriptLinkRole",
+    "RelationshipKind",
     "Contract",
     "ContractStatus",
     "EditorialNote",

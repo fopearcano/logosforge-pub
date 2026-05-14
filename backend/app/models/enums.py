@@ -99,3 +99,44 @@ class AIFeature(str, Enum):
     EDITORIAL_SUGGESTIONS = "editorial_suggestions"
     SEMANTIC_TAGS = "semantic_tags"
     CONSISTENCY_CHECK = "consistency_check"
+
+
+class EntityKind(str, Enum):
+    """Kinds of node in the editorial knowledge graph."""
+
+    CHARACTER = "character"
+    PLACE = "place"
+    THEME = "theme"
+    MOTIF = "motif"
+    ORGANIZATION = "organization"
+    WORK = "work"
+    PERSON = "person"
+    PERIOD = "period"
+    OTHER = "other"
+
+
+class RelationshipKind(str, Enum):
+    """Typed edges between knowledge entities."""
+
+    RELATED_TO = "related_to"
+    INFLUENCES = "influences"
+    DESCENDS_FROM = "descends_from"
+    CONTRASTS_WITH = "contrasts_with"
+    INHABITS = "inhabits"
+    AUTHORED = "authored"
+    PART_OF = "part_of"
+    SIBLING_OF = "sibling_of"
+    MENTOR_OF = "mentor_of"
+    ADAPTS = "adapts"
+    OTHER = "other"
+
+
+class ManuscriptLinkRole(str, Enum):
+    """How a manuscript relates to a knowledge entity."""
+
+    TAGGED = "tagged"
+    FEATURES = "features"
+    REFERENCES = "references"
+    SET_IN = "set_in"
+    DERIVED_FROM = "derived_from"
+    OTHER = "other"

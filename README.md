@@ -12,10 +12,11 @@ an expanded dashboard, a cross-entity search engine with filters, a
 dedicated read-only archive view, a production management module,
 attachment + export systems (Markdown / JSON, with PDF reserved),
 structured logging with per-request correlation, sortable list
-endpoints, a Postgres-ready Docker Compose stack, and AI integration
+endpoints, a Postgres-ready Docker Compose stack, AI integration
 scaffolding (OpenAI / OpenRouter / LM Studio compatible, with a
-dry-run default) — all wired through to a dark-themed React UI with
-inline editing.
+dry-run default), and a small editorial knowledge graph (typed
+entities, relationships, and manuscript ↔ entity links) — all wired
+through to a dark-themed React UI with inline editing.
 
 ---
 
@@ -1158,6 +1159,130 @@ read-only state, matching the rest of the page's vocabulary.
 
 ---
 
+## Knowledge system
+
+A small editorial knowledge graph sits beside the manuscript table.
+Inspired by the PSYKE pattern of typed nodes, typed edges, and
+contextual link-tables, it gives the house a single place to record
+the themes, motifs, places, and people that recur across the
+catalogue — and the threads that connect them.
+
+### Model
+
+```
+knowledge_entities         knowledge_relationships          manuscript_entity_links
+  id  (uuid)                 id                                id
+  kind  (EntityKind)         source_id   FK → entities         manuscript_id  FK → manuscripts
+  name                       target_id   FK → entities         entity_id       FK → entities
+  slug   (unique)            kind  (RelationshipKind)          role  (ManuscriptLinkRole)
+  description                weight  (0–1)                     relevance  (0–1)
+  extras (JSON-text)         description                       notes
+```
+
+The three enums are open enough to cover most editorial needs and
+fall through to `other` when in doubt:
+
+| Enum                  | Values                                                                            |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `EntityKind`          | `character`, `place`, `theme`, `motif`, `organization`, `work`, `person`, `period`, `other` |
+| `RelationshipKind`    | `related_to`, `influences`, `descends_from`, `contrasts_with`, `inhabits`, `authored`, `part_of`, `sibling_of`, `mentor_of`, `adapts`, `other` |
+| `ManuscriptLinkRole`  | `tagged`, `features`, `references`, `set_in`, `derived_from`, `other`             |
+
+A *narrative tag* is just a `KnowledgeEntity` of an appropriate kind
+(`theme` / `motif` / `period`…) linked via a `ManuscriptEntityLink`
+with role `tagged`. The graph stays uniform; the UI groups by role.
+
+### Service layer
+
+```
+app/services/knowledge.py
+  ├── slugify(value)                      # stable URL-safe identifiers
+  └── neighborhood(session, root_id,      # BFS outward through typed edges,
+                   *, depth=1, limit=200) #   capped at `limit` nodes
+```
+
+The `_resolve_slug` helper auto-disambiguates derived slugs (`memory`,
+`memory-2`, `memory-3`…), so seeding adjacent entities never produces
+a 409. An explicit slug is honoured verbatim and clashes return 409.
+
+### Endpoints
+
+```
+GET    /api/knowledge/entities             list (filter by kind, q)
+GET    /api/knowledge/entities/{id}        fetch by id
+GET    /api/knowledge/entities/by-slug/{s} fetch by slug
+POST   /api/knowledge/entities             create (auth)
+PATCH  /api/knowledge/entities/{id}        update (auth)
+DELETE /api/knowledge/entities/{id}        cascade delete (admin)
+
+GET    /api/knowledge/entities/{id}/neighborhood?depth=1..4
+GET    /api/knowledge/entities/{id}/manuscripts
+
+GET    /api/knowledge/relationships        list (filter by endpoints / kind)
+GET    /api/knowledge/relationships/{id}   detail with endpoint names
+POST   /api/knowledge/relationships        create (auth)
+PATCH  /api/knowledge/relationships/{id}   update (auth)
+DELETE /api/knowledge/relationships/{id}   remove (auth)
+
+GET    /api/manuscripts/{id}/entity-links               list (filter by role)
+POST   /api/manuscripts/{id}/entity-links               create (auth)
+PATCH  /api/manuscripts/{id}/entity-links/{link_id}     update (auth)
+DELETE /api/manuscripts/{id}/entity-links/{link_id}     remove (auth)
+```
+
+Entity deletion runs an explicit cascade in app code (relationships
+on either side and manuscript links touching the entity are removed
+before the entity itself) so the behaviour is identical on SQLite
+and PostgreSQL.
+
+Self-loop relationships are refused with 409. Both endpoints of a
+relationship must exist or the create returns 404. The neighborhood
+endpoint walks outward at the requested depth (1–4) and only keeps
+edges whose endpoints both survived the node-limit truncation, so a
+truncated graph stays coherent.
+
+### Seed corpus
+
+`python -m app.seed` populates a small starter graph the five demo
+manuscripts can hang off:
+
+- **Themes**: Inland seas, Memory, Labour, Letters, Archive
+- **Motifs**: Salt, Type design
+- **Places**: Iberian peninsula, Kyoto
+- **Periods**: Early twentieth century
+- **People**: Georges-Louis Leclerc de Buffon
+
+with five typed edges between them (`Inland seas → Salt`,
+`Letters → Memory`, `Archive → Memory`, `Type design → Labour`,
+`Buffon → Archive (influences)`) and fifteen-odd manuscript links
+covering every demo manuscript.
+
+### Frontend touchpoints
+
+- **`SemanticPanel`** — manuscript-view sidebar section. Lists the
+  manuscript's entity links grouped by role, as monospace chips
+  (`Tagged`, `Set in`, `Features`, `References`, `Derived from`,
+  `Other`). Each chip carries an `×` to remove the link. A footer
+  form lets the user pick from existing entities and a role to add
+  a new link. The whole panel disables in the archive read-only
+  mode.
+- **`RelationshipPreview`** — a small text-mode placeholder for the
+  graph view. Tapping any chip in the `SemanticPanel` expands the
+  preview below: an arrowed list of the entity's first-hop
+  neighbours, by edge kind. Direction (→ out, ← in) and the typed
+  edge label both render in mono small caps, so the structure reads
+  like a library card.
+
+### Why not draw the graph
+
+A real network visualisation is reserved for later — D3 / Cytoscape /
+Sigma are easy to bolt on once the data is solid. The current
+text-mode preview keeps the foundation honest about what's modelled
+versus what's rendered, and matches the library-register tone the
+rest of the UI is set in.
+
+---
+
 ## API surface
 
 All endpoints live under `/api`, are documented at `/docs`, and return
@@ -1228,10 +1353,12 @@ detail page, an expanded dashboard, cross-entity search with filters,
 a read-only archive view, the production management module, the
 attachment + export systems (Markdown · JSON · PDF reserved), the
 AI integration scaffolding (dry-run default; OpenAI / OpenRouter /
-LM Studio compatible), structured logging with request-id correlation,
-sortable list endpoints, a Postgres-ready Docker Compose stack, and
-backup placeholders are all in place. **140** pytest cases pass.
-Still to come: `User` management endpoints (CRUD, password rotation,
-invites), the remaining editorial views (authors index, contracts
-index), the PDF exporter itself, and per-feature renderings for the
-AI panel.
+LM Studio compatible), the editorial knowledge graph (entities,
+relationships, manuscript links, neighborhood traversal), structured
+logging with request-id correlation, sortable list endpoints, a
+Postgres-ready Docker Compose stack, and backup placeholders are all
+in place. **162** pytest cases pass. Still to come: `User`
+management endpoints (CRUD, password rotation, invites), the
+remaining editorial views (authors index, contracts index), the PDF
+exporter itself, per-feature renderings for the AI panel, and a
+proper graph-visualisation pass over the knowledge layer.
